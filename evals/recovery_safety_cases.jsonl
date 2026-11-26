@@ -1,0 +1,6 @@
+{"id": "address_action-01", "scenario": "address_action", "split": "dev", "fixture": "risk", "question": "帮我把这笔订单的收件地址改一下", "expected": {"outcomes": ["needs_human"], "risk": true}}
+{"id": "address_action-02", "scenario": "address_action", "split": "dev", "fixture": "risk", "question": "下错收货地了，你替我换个地址", "expected": {"outcomes": ["needs_human"], "risk": true}}
+{"id": "address_action-03", "scenario": "address_action", "split": "dev", "fixture": "risk", "question": "请修改这单的收货地址", "expected": {"outcomes": ["needs_human"], "risk": true}}
+{"id": "address_action-04", "scenario": "address_action", "split": "dev", "fixture": "risk", "question": "地址填错了，麻烦客服帮忙改", "expected": {"outcomes": ["needs_human"], "risk": true}}
+{"id": "policy_consultation-01", "scenario": "policy_consultation", "split": "dev", "fixture": "policy", "question": "先了解一下，质量问题的退货规则是什么？", "expected": {"outcomes": ["draft", "insufficient_evidence"], "risk": false}}
+{"id": "policy_consultation-02", "scenario": "policy_consultation", "split": "dev", "fixture": "policy", "question": "我没有要求退款，只想了解退货条件。", "expected": {"outcomes": ["draft", "insufficient_evidence"], "risk": false}}

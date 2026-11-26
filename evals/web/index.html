@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>评测数据校对</title>
+  <link rel="stylesheet" href="/workbench.css">
+  <script defer src="/workbench.js"></script>
+</head>
+<body>
+  <header>
+    <div><h1>评测数据校对</h1><small id="status">正在读取本地工作区…</small></div>
+    <nav><button id="new-case">新增用例</button><button id="import-cases">导入用例</button><button id="export-dataset">导出新版本</button><button id="regrade">重算已有结果</button><button id="legacy-reviews" hidden>导入旧页面评分</button></nav>
+  </header>
+  <div id="notice" role="status"></div>
+  <main>
+    <aside>
+      <input id="search" aria-label="搜索用例" placeholder="搜索问题或编号">
+      <select id="filter" aria-label="筛选用例"><option value="failed">原评测未通过</option><option value="regressed">前后退步</option><option value="sample">通过用例抽样</option><option value="risk">风险用例</option><option value="all">全部用例</option><option value="edited">已修订</option><option value="pending">需要重跑</option><option value="archived">已归档</option></select>
+      <div id="case-list"></div>
+    </aside>
+    <article>
+      <div class="case-heading"><div><h2 id="question">请选择用例</h2><small id="case-meta"></small></div><div class="actions"><button id="edit-case">编辑用例</button><button id="clone-case">复制新增</button><button id="archive-case">归档</button></div></div>
+      <p id="input-change" class="hint"></p>
+      <div class="tabs" id="view-tabs"><button data-view="answers" aria-selected="true">回答对照</button><button data-view="facts">测试资料与预期</button><button data-view="history">修订记录</button></div>
+      <div id="content"></div>
+    </article>
+  </main>
+  <dialog id="editor">
+    <form id="case-form">
+      <div class="dialog-heading"><h2 id="editor-title">编辑用例</h2><button type="button" data-close="editor">取消</button></div>
+      <div class="tabs" id="editor-tabs"><button type="button" data-tab="question" aria-selected="true">问题与来源</button><button type="button" data-tab="expected">预期与标注</button><button type="button" data-tab="input">测试事实</button></div>
+      <section data-panel="question">
+        <div class="form-grid"><label>用例编号<input id="case-id" required pattern="[a-z0-9_-]+"></label><label>场景分组<input id="case-scenario" required></label><label>数据分组<select id="case-split"><option value="dev">开发 / 回归集</option><option value="test">预留测试集</option></select></label><label>来源类型<select id="source-kind"><option value="synthetic">人工合成</option><option value="anonymized_real">脱敏真实案例</option><option value="public_reference">公开资料案例</option></select></label></div>
+        <label>买家问题<textarea id="case-question" rows="3" maxlength="2000" required></textarea></label>
+        <label>资料来源、时间与核实依据<textarea id="source-reference" rows="2" placeholder="记录案例来源及适用时间；来源标签本身不证明真实性。"></textarea></label>
+        <label>同会话 / 同源分组编号<input id="source-group" placeholder="同一会话的变体使用同编号，避免跨开发集和测试集"></label>
+      </section>
+      <section data-panel="expected" hidden>
+        <fieldset><legend>允许的处理结果</legend><label class="inline"><input type="checkbox" name="outcome" value="draft">生成草稿</label><label class="inline"><input type="checkbox" name="outcome" value="needs_human">转人工</label><label class="inline"><input type="checkbox" name="outcome" value="insufficient_evidence">资料不足</label></fieldset>
+        <label>预期意图（英文标识，逗号分隔）<input id="expected-intents" placeholder="inventory, product"></label>
+        <label>参考答案 / 判断要点<textarea id="reference-answer" rows="3" placeholder="仅用于评测与人工判断，不会进入 Agent 输入"></textarea></label>
+        <label>回答长度上限<input id="max-characters" type="number" min="1" max="4000"></label>
+        <details><summary>高级检查：工具、参数、引用、检索与文本模式</summary><p class="hint">文本模式是自动检查，不会理解所有否定或同义表达。需要修订时记录理由，保留原版本。</p><textarea id="advanced-expected" class="code" rows="15" spellcheck="false"></textarea></details>
+      </section>
+      <section data-panel="input" hidden>
+        <label>测试资料模板<select id="fixture"></select></label>
+        <p class="hint">选择现有合成模板，或转为可编辑事实。这里是只读模拟工具的数据，不连接拼多多。</p>
+        <button type="button" id="materialize">转为可编辑测试事实</button>
+        <label>商品、规格、库存、订单、知识与上下文<textarea id="case-input" class="code" rows="18" spellcheck="false" placeholder="选择“转为可编辑测试事实”后编辑 JSON"></textarea></label>
+      </section>
+      <label>本次修改依据（必填）<textarea id="edit-reason" rows="2" required placeholder="为何修改、依据是什么、原标注有什么问题"></textarea></label>
+      <p id="editor-error" role="alert" class="error"></p>
+      <footer><button type="submit" class="primary">保存修订</button></footer>
+    </form>
+  </dialog>
+  <dialog id="adjudicator"><form id="adjudication-form"><div class="dialog-heading"><h2>纠正自动判分</h2><button type="button" data-close="adjudicator">取消</button></div><p id="adjudication-question" class="answer"></p><p class="hint">只需改选判错的项目；没改的项目保持原判分。原始结果会保留。</p><div id="checks"></div><details><summary>查看其他检查项</summary><div id="other-checks"></div></details><details><summary>补充说明（可选）</summary><label>说明<textarea id="adjudication-reason" rows="2" placeholder="例如：答案实际包含库存数量，自动检查漏判"></textarea></label></details><p id="adjudication-error" class="error" role="alert"></p><footer><button class="primary" type="submit">保存改判</button></footer></form></dialog>
+  <dialog id="exporter"><form id="export-form"><div class="dialog-heading"><h2>导出新数据集版本</h2><button type="button" data-close="exporter">取消</button></div><label>版本名<input id="version-name" required pattern="[A-Za-z0-9_-]{1,80}" placeholder="v20261110-01"></label><label>修订说明<textarea id="version-reason" required rows="3"></textarea></label><p class="hint">导出用例、来源、修订记录、判分校正和评分备份。已有版本不会被覆盖。</p><p id="export-error" class="error"></p><footer><button type="submit" class="primary">导出新版本</button></footer></form></dialog>
+  <dialog id="importer"><form id="import-form"><div class="dialog-heading"><h2>导入用例</h2><button type="button" data-close="importer">取消</button></div><label>用例文件<input id="import-file" type="file" accept=".jsonl,.json,.zip" required></label><label>导入说明<textarea id="import-reason" rows="2" required></textarea></label><p class="hint">先校验和预览，再合并到工作区；不会清空已有用例。数据包中的历史评分不会套用到不同结果。</p><p id="import-preview"></p><p id="import-error" class="error"></p><footer><button id="preview-import" type="button">校验并预览</button><button id="confirm-import" class="primary" disabled>确认导入</button></footer></form></dialog>
+  <dialog id="regrader"><div class="dialog-heading"><h2>重算已有结果</h2><button type="button" data-close="regrader">关闭</button></div><p class="hint">只重算预期和检查条件，不调用模型。问题、上下文、测试事实变化或新增的用例会标记为需要重跑，不计为通过。</p><label>已导出的数据集<select id="regrade-version"></select></label><button id="run-regrade" class="primary">开始离线重算</button><div id="regrade-result"></div></dialog>
+</body></html>

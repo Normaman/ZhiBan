@@ -1,0 +1,10 @@
+{"id":"shipping","question":"什么时候发货？","outcome":"draft","source_type":"shop_policy"}
+{"id":"spec","question":"这款杯子容量和材质是什么？","outcome":"draft","source_type":"product"}
+{"id":"inventory","question":"这款有库存吗？","outcome":"draft","source_type":"platform_product"}
+{"id":"recommendation","question":"推荐一个商品，多少钱？","outcome":"draft","source_type":"platform_product"}
+{"id":"policy","question":"店铺售后规则是什么？","outcome":"draft","source_type":"shop_policy"}
+{"id":"refund","question":"我要退款","outcome":"needs_human"}
+{"id":"complaint","question":"我要投诉你们","outcome":"needs_human"}
+{"id":"address","question":"请修改收货地址","outcome":"needs_human"}
+{"id":"compensation","question":"要求赔偿","outcome":"needs_human"}
+{"id":"unknown","question":"能帮我做一下这个吗？","outcome":"insufficient_evidence"}
