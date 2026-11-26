@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pddcopilot.core.mapper.WorkspaceMemberMapper">
+  <select id="lockWorkspace" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT id,owner_user_id FROM workspaces WHERE id=#{workspace} FOR UPDATE
+  </select>
+  <select id="member" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT u.id,u.username,u.enabled AS account_enabled,wm.enabled,wm.role,wm.revision
+    FROM workspace_memberships wm JOIN app_users u ON u.id=wm.user_id
+    WHERE wm.workspace_id=#{workspace} AND wm.user_id=#{user} FOR UPDATE OF wm,u
+  </select>
+  <select id="actor" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT wm.role,wm.enabled,u.enabled AS account_enabled
+    FROM workspace_memberships wm JOIN app_users u ON u.id=wm.user_id
+    WHERE wm.workspace_id=#{workspace} AND u.username=#{username}
+  </select>
+  <update id="setEnabled">
+    UPDATE workspace_memberships SET enabled=#{enabled},revision=revision+1
+    WHERE workspace_id=#{workspace} AND user_id=#{user} AND revision=#{revision}
+  </update>
+  <delete id="remove">
+    DELETE FROM workspace_memberships WHERE workspace_id=#{workspace} AND user_id=#{user} AND revision=#{revision}
+  </delete>
+</mapper>

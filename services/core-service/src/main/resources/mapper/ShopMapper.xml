@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pddcopilot.core.mapper.ShopMapper">
+  <select id="findShopIds" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT id FROM shops WHERE id=#{shopId}
+  </select>
+
+  <insert id="insertShop">
+    INSERT INTO shops(id,name,connector_account_id,platform_shop_id,mode,workspace_id,binding_state) VALUES
+    (#{shopId},#{shopName},#{account},#{platform},#{mode},#{shopId},#{value})
+  </insert>
+
+  <select id="findShop" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM shops WHERE id=#{shopId}
+  </select>
+
+  <update id="resetConnection">
+    UPDATE shops SET connection_state='disconnected',connection_seen_at=0,connection_error_code=NULL WHERE
+    id=#{shopId}
+  </update>
+</mapper>

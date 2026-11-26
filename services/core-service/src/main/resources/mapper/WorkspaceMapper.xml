@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pddcopilot.core.mapper.WorkspaceMapper">
+  <select id="accessibleShops" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT s.*, w.name AS workspace_name, wm.role AS member_role FROM shops s JOIN workspaces w ON
+    w.id=s.workspace_id JOIN workspace_memberships wm ON wm.workspace_id=w.id JOIN app_users u ON
+    u.id=wm.user_id WHERE u.username=#{username} AND u.enabled=TRUE AND wm.enabled=TRUE ORDER BY s.id
+  </select>
+
+  <select id="members" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT u.id,u.username,(u.enabled AND wm.enabled) AS enabled,wm.enabled AS membership_enabled,wm.role,wm.revision FROM workspace_memberships wm JOIN app_users u ON
+    u.id=wm.user_id WHERE wm.workspace_id=#{workspace} ORDER BY wm.created_at,u.username
+  </select>
+
+  <select id="workspaceExists" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT id FROM workspaces WHERE id=#{id}
+  </select>
+
+  <insert id="insertWorkspace">
+    INSERT INTO workspaces(id,name,owner_user_id,created_at) VALUES (#{id},#{name},#{owner},#{created})
+  </insert>
+
+  <select id="isMember" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT user_id FROM workspace_memberships WHERE user_id=#{user} AND workspace_id=#{workspace}
+  </select>
+
+  <insert id="insertMembership">
+    INSERT INTO workspace_memberships(workspace_id,user_id,role,created_at) VALUES (#{workspace},#{user},#{role},#{created})
+  </insert>
+
+  <update id="setInitialOwner">
+    UPDATE workspaces SET owner_user_id=#{user} WHERE id=#{workspace} AND owner_user_id IS NULL
+  </update>
+
+  <insert id="insertShop">
+    INSERT INTO shops(id,name,connector_account_id,platform_shop_id,mode,workspace_id,binding_state) VALUES
+    (#{id},#{name},#{value},#{value2},#{value3},#{workspace},#{value4})
+  </insert>
+
+  <select id="shop" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM shops WHERE id=#{id}<if test="lock"> FOR UPDATE</if>
+  </select>
+
+  <select id="shopCount" resultType="java.lang.Integer" useCache="false">
+    SELECT COUNT(*) FROM shops WHERE workspace_id=#{workspace}
+  </select>
+
+  <select id="workspace" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT id,name,owner_user_id FROM workspaces WHERE id=#{id}
+  </select>
+
+  <select id="invitations" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT id,created_by,created_at,expires_at,consumed_at,revoked FROM workspace_invitations WHERE
+    workspace_id=#{workspace} ORDER BY created_at DESC LIMIT 50
+  </select>
+
+  <update id="renameShop">
+    UPDATE shops SET name=#{name} WHERE id=#{id}
+  </update>
+
+  <insert id="insertInvitation">
+    INSERT INTO workspace_invitations(id,workspace_id,token_hash,created_by,created_at,expires_at) VALUES
+    (#{id},#{workspace},#{hash},#{actor},#{created},#{expires})
+  </insert>
+
+  <update id="revokeInvitation">
+    UPDATE workspace_invitations SET revoked=TRUE WHERE id=#{id} AND workspace_id=#{workspace}
+  </update>
+
+  <select id="lockInvitation" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM workspace_invitations WHERE token_hash=#{hash} FOR UPDATE
+  </select>
+
+  <update id="consumeInvitation">
+    UPDATE workspace_invitations SET consumed_at=#{timestamp} WHERE id=#{id}
+  </update>
+
+  <select id="firstShop" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT id FROM shops WHERE workspace_id=#{workspace} ORDER BY id LIMIT 1
+  </select>
+
+  <select id="binding" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT id,mode,platform_shop_id,connector_account_id,binding_state FROM shops WHERE id=#{shop}
+  </select>
+
+  <insert id="claimPlatform">
+    INSERT INTO connector_bindings VALUES (#{platform},#{shop})
+  </insert>
+
+  <select id="platformClaimedByAnotherShop" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT shop_id FROM connector_bindings WHERE platform_shop_id=#{platform} AND shop_id&lt;&gt;#{shop}
+  </select>
+
+  <update id="bind">
+    UPDATE shops SET platform_shop_id=#{platform},connector_account_id=#{account},binding_state='bound' WHERE
+    id=#{shop}
+  </update>
+</mapper>

@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pddcopilot.core.mapper.AgentRunMapper">
+  <insert id="insertRun">
+    INSERT INTO agent_runs(id,message_id,conversation_revision,knowledge_version,state,created_at) VALUES
+    (#{run},#{messageId},#{revision},#{version},'queued',#{timestamp})
+  </insert>
+
+  <update id="markMessageRunning">
+    UPDATE messages SET state='agent_running' WHERE id=#{messageId}
+  </update>
+
+  <select id="findMessage" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM messages WHERE id=#{messageId}
+  </select>
+
+  <select id="findDecidedDrafts" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT d.id FROM drafts d WHERE d.message_id=#{messageId} AND (d.state IN
+    ('approved','sending','sent','send_failed','send_unknown') OR EXISTS (SELECT 1 FROM send_commands sc
+    WHERE sc.draft_id=d.id))
+  </select>
+
+  <select id="findActiveRuns" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT id FROM agent_runs WHERE message_id=#{messageId} AND conversation_revision=#{revision} AND state
+    IN ('queued','running')
+  </select>
+
+  <select id="latestInbound" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT m.id FROM messages m WHERE m.conversation_id=#{conversationId} AND m.direction='inbound' AND
+    m.message_type NOT IN ('system_hint','order_info') AND NOT
+    <include refid="com.pddcopilot.core.mapper.SqlFragments.linkedProductCard"/> ORDER BY m.created_at
+    DESC,m.id DESC LIMIT 1
+  </select>
+
+  <select id="productDetail" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT payload FROM product_details WHERE shop_id=#{shopId} AND goods_id=#{goods}
+  </select>
+
+  <update id="invalidateDraft">
+    UPDATE drafts SET state='outdated' WHERE message_id=#{messageId}
+  </update>
+
+  <select id="findShop" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM shops WHERE id=#{shopId}
+  </select>
+
+  <select id="findContextRun" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM agent_runs WHERE id=#{runId}
+  </select>
+
+  <select id="findContextMessage" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM messages WHERE id=#{messageId}
+  </select>
+
+  <select id="findKnowledgeSnapshot" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT snapshot FROM knowledge_versions WHERE id=#{knowledgeVersion} AND shop_id=#{shopId}
+  </select>
+
+  <select id="findShopMode" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT mode FROM shops WHERE id=#{shopId}
+  </select>
+
+  <select id="listRecentMessages" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT id,direction,content,message_type FROM (SELECT
+    m.id,m.direction,m.content,m.message_type,m.created_at FROM messages m WHERE
+    m.conversation_id=#{conversationId} AND m.created_at&lt;=#{before} AND
+    m.message_type&lt;&gt;'system_hint' AND NOT
+    <include refid="com.pddcopilot.core.mapper.SqlFragments.linkedProductCard"/> AND (m.direction='inbound'
+    OR (m.direction='outbound' AND m.state='sent')) ORDER BY m.created_at DESC,m.id DESC LIMIT 20) recent
+    ORDER BY created_at,id
+  </select>
+
+  <select id="priorProductSources" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT id,media_json,message_type,content FROM messages WHERE conversation_id=#{conversationId} AND
+    created_at&lt;=#{timestamp} AND (media_json IS NOT NULL OR (message_type='order_info' AND
+    direction='inbound')) ORDER BY created_at DESC,id DESC LIMIT 20
+  </select>
+
+  <select id="priorOrderSources" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT id,content,message_type FROM messages WHERE conversation_id=#{conversationId} AND
+    created_at&lt;=#{timestamp} AND direction='inbound' AND (message_type='order_info' OR
+    (message_type='text' AND content LIKE '%-%')) ORDER BY created_at DESC,id DESC LIMIT 20
+  </select>
+
+  <select id="linkedProductSources" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT id,media_json FROM messages WHERE conversation_id=#{conversationId} AND direction='inbound' AND
+    message_type IN ('system_hint','goods_inquiry') AND created_at&lt;=#{cutoff} AND media_json IS NOT NULL
+    AND related_platform_message_id=#{platformId} ORDER BY created_at DESC,id DESC
+  </select>
+
+  <select id="findResultRun" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM agent_runs WHERE id=#{runId}
+  </select>
+
+  <select id="findResultMessage" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM messages WHERE id=#{messageId}
+  </select>
+
+  <update id="completeRun">
+    UPDATE agent_runs SET state='completed',result=#{payloadJson} WHERE id=#{runId}
+  </update>
+
+  <update id="supersedeRun">
+    UPDATE agent_runs SET state='superseded' WHERE id=#{runId}
+  </update>
+
+  <select id="lockMessageDraft" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM drafts WHERE message_id=#{messageId} FOR UPDATE
+  </select>
+
+  <insert id="insertDraft">
+    INSERT INTO
+    drafts(id,message_id,run_id,revision,conversation_revision,state,content,citations,risk_codes,knowledge_version,outcome,updated_at)
+    VALUES
+    (#{draftId},#{messageId},#{runId},#{revision},#{conversationRevision},'waiting_human',#{content},#{citations},#{riskCodes},#{knowledgeVersion},#{outcome},#{timestamp})
+  </insert>
+
+  <update id="updateDraft">
+    UPDATE drafts SET
+    run_id=#{runId},revision=#{revision},conversation_revision=#{conversationRevision},state='waiting_human',content=#{content},citations=#{citations},risk_codes=#{riskCodes},knowledge_version=#{knowledgeVersion},outcome=#{outcome},updated_at=#{timestamp}
+    WHERE id=#{draftId}
+  </update>
+
+  <update id="markMessageWaiting">
+    UPDATE messages SET state='waiting_human' WHERE id=#{messageId}
+  </update>
+
+  <update id="saveCards">
+    UPDATE drafts SET product_cards=#{cards},cards_edited=FALSE WHERE id=#{draft}
+  </update>
+</mapper>

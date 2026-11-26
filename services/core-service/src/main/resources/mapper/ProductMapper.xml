@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pddcopilot.core.mapper.ProductMapper">
+  <select id="details" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM product_details WHERE shop_id=#{shopId} AND goods_id=#{goods}
+  </select>
+
+  <select id="summaries" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT goods_id,category_path,sku_count,attributes_count,updated_at FROM product_details WHERE
+    shop_id=#{shop}
+  </select>
+
+  <select id="latestRun" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM product_sync_runs WHERE shop_id=#{shopId} ORDER BY created_at DESC,id DESC LIMIT 1
+  </select>
+
+  <select id="run" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM product_sync_runs WHERE id=#{id} AND shop_id=#{shopId}
+  </select>
+
+  <select id="activeRun" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM product_sync_runs WHERE shop_id=#{shopId} AND state='running' ORDER BY created_at DESC
+    LIMIT 1
+  </select>
+
+  <insert id="insertRun">
+    INSERT INTO product_sync_runs(id,shop_id,state,total,created_at,updated_at) VALUES
+    (#{id},#{shopId},'running',#{count},#{now},#{now})
+  </insert>
+
+  <insert id="insertItem">
+    INSERT INTO product_sync_items(id,run_id,goods_id,state) VALUES (#{id},#{run},#{goods},'pending')
+  </insert>
+
+  <update id="sourceHash">
+    UPDATE product_sync_items SET source_hash=#{hash} WHERE id=#{item}
+  </update>
+
+  <update id="skip">
+    UPDATE product_sync_items SET state='skipped' WHERE id=#{item}
+  </update>
+
+  <update id="savedSource">
+    UPDATE product_details SET source_hash=#{hash} WHERE shop_id=#{shopId} AND goods_id=#{goods}
+  </update>
+
+  <select id="item" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT i.*,r.shop_id FROM product_sync_items i JOIN product_sync_runs r ON r.id=i.run_id WHERE i.id=#{id}
+  </select>
+
+  <update id="markRunning">
+    UPDATE product_sync_items SET state='running' WHERE id=#{id} AND state='pending'
+  </update>
+
+  <select id="lockRun" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT id FROM product_sync_runs WHERE id=#{id} FOR UPDATE
+  </select>
+
+  <update id="finishItem">
+    UPDATE product_sync_items SET state=#{value},error_code=#{value2} WHERE id=#{id}
+  </update>
+
+  <select id="countItemStates" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT count(*) AS total,sum(CASE WHEN state='completed' THEN 1 ELSE 0 END) AS completed,sum(CASE WHEN
+    state='skipped' THEN 1 ELSE 0 END) AS skipped,sum(CASE WHEN state='failed' THEN 1 ELSE 0 END) AS failed
+    FROM product_sync_items WHERE run_id=#{run}
+  </select>
+
+  <update id="updateProgress">
+    UPDATE product_sync_runs SET
+    completed=#{done},skipped=#{skipped},failed=#{failed},state=#{value},updated_at=#{now} WHERE id=#{run}
+  </update>
+
+  <insert id="insertDetail">
+    INSERT INTO product_details(shop_id,goods_id,payload,category_path,sku_count,attributes_count,updated_at)
+    VALUES (#{shopId},#{goods},#{payload},#{category},#{skus},#{attributes},#{now})
+  </insert>
+
+  <update id="updateDetail">
+    UPDATE product_details SET
+    payload=#{payload},category_path=#{category},sku_count=#{skus},attributes_count=#{attributes},updated_at=#{now}
+    WHERE shop_id=#{shopId} AND goods_id=#{goods}
+  </update>
+</mapper>

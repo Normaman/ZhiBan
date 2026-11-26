@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pddcopilot.core.mapper.ShopRemovalMapper">
+  <select id="hasActiveJobs" resultType="java.lang.Boolean" useCache="false">
+    SELECT EXISTS(SELECT 1 FROM jobs WHERE shop_id=#{shopId} AND state IN ('pending','running'))
+  </select>
+
+  <select id="hasUnresolvedSends" resultType="java.lang.Boolean" useCache="false">
+    SELECT EXISTS(SELECT 1 FROM send_command_context WHERE shop_id=#{shopId} AND state IN
+    ('approved','sending','send_unknown'))
+  </select>
+
+  <delete id="deleteReplyCommandMessages">
+    DELETE FROM reply_command_messages WHERE command_id IN (SELECT id FROM send_command_context WHERE
+    shop_id=#{shopId})
+  </delete>
+
+  <delete id="deleteReplyRunMessages">
+    DELETE FROM reply_run_messages WHERE run_id IN (SELECT r.id FROM agent_runs r JOIN messages m ON
+    m.id=r.message_id WHERE m.shop_id=#{shopId})
+  </delete>
+
+  <update id="clearAnswerReferences">
+    UPDATE reply_questions SET answered_by=NULL WHERE conversation_id IN (SELECT id FROM conversations WHERE
+    shop_id=#{shopId})
+  </update>
+
+  <delete id="deleteReplyQuestions">
+    DELETE FROM reply_questions WHERE conversation_id IN (SELECT id FROM conversations WHERE
+    shop_id=#{shopId})
+  </delete>
+
+  <delete id="deleteSendCommands">
+    DELETE FROM send_commands WHERE id IN (SELECT id FROM send_command_context WHERE shop_id=#{shopId})
+  </delete>
+
+  <delete id="deleteDecisions">
+    DELETE FROM decisions WHERE draft_id IN (SELECT d.id FROM drafts d JOIN messages m ON m.id=d.message_id
+    WHERE m.shop_id=#{shopId})
+  </delete>
+
+  <delete id="deleteDrafts">
+    DELETE FROM drafts WHERE message_id IN (SELECT id FROM messages WHERE shop_id=#{shopId})
+  </delete>
+
+  <delete id="deleteManualReplies">
+    DELETE FROM manual_replies WHERE conversation_id IN (SELECT id FROM conversations WHERE
+    shop_id=#{shopId})
+  </delete>
+
+  <delete id="deleteAgentRuns">
+    DELETE FROM agent_runs WHERE message_id IN (SELECT id FROM messages WHERE shop_id=#{shopId})
+  </delete>
+
+  <delete id="deleteMessages">
+    DELETE FROM messages WHERE shop_id=#{shopId}
+  </delete>
+
+  <delete id="deleteConversations">
+    DELETE FROM conversations WHERE shop_id=#{shopId}
+  </delete>
+
+  <delete id="deleteJobs">
+    DELETE FROM jobs WHERE shop_id=#{shopId}
+  </delete>
+
+  <delete id="deleteProductSyncItems">
+    DELETE FROM product_sync_items WHERE run_id IN (SELECT id FROM product_sync_runs WHERE shop_id=#{shopId})
+  </delete>
+
+  <delete id="deleteProductSyncRuns">
+    DELETE FROM product_sync_runs WHERE shop_id=#{shopId}
+  </delete>
+
+  <delete id="deleteProductDetails">
+    DELETE FROM product_details WHERE shop_id=#{shopId}
+  </delete>
+
+  <delete id="deleteProductSnapshots">
+    DELETE FROM product_snapshots WHERE shop_id=#{shopId}
+  </delete>
+
+  <delete id="deleteKnowledgeVersions">
+    DELETE FROM knowledge_versions WHERE shop_id=#{shopId}
+  </delete>
+
+  <delete id="deletePlatformReadMarkers">
+    DELETE FROM platform_read_markers WHERE shop_id=#{shopId}
+  </delete>
+
+  <delete id="deleteModelSettings">
+    DELETE FROM model_settings WHERE shop_id=#{shopId}
+  </delete>
+
+  <delete id="deleteModelConfigurations">
+    DELETE FROM model_configurations WHERE shop_id=#{shopId}
+  </delete>
+
+  <delete id="deleteConnectorBindings">
+    DELETE FROM connector_bindings WHERE shop_id=#{shopId}
+  </delete>
+
+  <update id="reassignUsers">
+    UPDATE app_users SET shop_id=#{fallbackShop} WHERE shop_id=#{shopId}
+  </update>
+
+  <insert id="recordRemoval">
+    INSERT INTO audit_events VALUES (#{value},#{fallbackShop},#{value2},#{shopId},#{actor},#{value3},#{now})
+  </insert>
+
+  <delete id="deleteShops">
+    DELETE FROM shops WHERE id=#{shopId}
+  </delete>
+  <delete id="deleteSendParts">DELETE FROM pdd_send_parts WHERE shop_id=#{shopId}</delete>
+  <delete id="deleteEventSpool">DELETE FROM pdd_event_spool WHERE shop_id=#{shopId}</delete>
+  <delete id="deleteJobOutbox">
+    DELETE FROM job_outbox WHERE job_id IN (SELECT id FROM jobs WHERE shop_id=#{shopId})
+  </delete>
+  <delete id="deleteKnowledgeProposals">DELETE FROM knowledge_proposals WHERE shop_id=#{shopId}</delete>
+</mapper>

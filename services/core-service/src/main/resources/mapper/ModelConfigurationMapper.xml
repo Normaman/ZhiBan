@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pddcopilot.core.mapper.ModelConfigurationMapper">
+  <select id="settings" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM model_settings WHERE shop_id=#{shopId}
+  </select>
+
+  <select id="lockShop" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT id FROM shops WHERE id=#{shopId} FOR UPDATE
+  </select>
+
+  <select id="version" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM model_configurations WHERE id=#{id} AND shop_id=#{shopId}
+  </select>
+
+  <insert id="insert">
+    INSERT INTO
+    model_configurations(id,shop_id,version,base_url,model_name,encrypted_api_key,key_hint,max_rounds,timeout_seconds,created_at)
+    VALUES (#{id},#{shopId},#{version},#{url},#{model},#{encryptedKey},#{hint},#{rounds},#{timeout},#{now})
+  </insert>
+
+  <insert id="saveSettingsInsertModelSettings">
+    INSERT INTO model_settings VALUES (#{shopId},#{revision},#{latest},#{active},#{environmentFallback})
+  </insert>
+
+  <update id="saveSettingsUpdateModelSettings">
+    UPDATE model_settings SET
+    revision=#{revision},latest_id=#{latest},active_id=#{active},environment_fallback=#{environmentFallback}
+    WHERE shop_id=#{shopId}
+  </update>
+
+  <update id="tested">
+    UPDATE model_configurations SET test_state=#{value},test_error_code=#{errorCode},tested_at=#{now} WHERE
+    id=#{id} AND shop_id=#{shopId}
+  </update>
+</mapper>

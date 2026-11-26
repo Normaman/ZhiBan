@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pddcopilot.core.mapper.PddEventSpoolMapper">
+  <insert id="insert">
+    INSERT INTO pdd_event_spool(id,shop_id,event_key,event_type,payload,available_at,created_at) VALUES
+    (#{value},#{shopId},#{eventKey},#{type},#{writeValueAsString},#{now},#{now2})
+  </insert>
+
+  <select id="drain" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT id,shop_id,event_key,event_type,payload,attempts FROM pdd_event_spool WHERE state='pending' AND
+    available_at&lt;=#{now} ORDER BY created_at,id LIMIT 100
+  </select>
+
+  <update id="deliverUpdatePddEventSpool">
+    UPDATE pdd_event_spool SET state='delivered',delivered_at=#{now},error_code=NULL WHERE id=#{id} AND
+    state='pending'
+  </update>
+
+  <update id="deliverUpdatePddEventSpool2">
+    UPDATE pdd_event_spool SET attempts=attempts+1,available_at=#{now},error_code=#{code} WHERE id=#{id} AND
+    state='pending'
+  </update>
+</mapper>

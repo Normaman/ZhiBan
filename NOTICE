@@ -1,0 +1,26 @@
+Source provenance
+=================
+
+Parts of the Pinduoduo parsing, action rules, browser-login flow, HTTP protocol
+handling, protocol diagnostic tools, and the model/tool execution loop and
+registry contracts were adapted from:
+https://github.com/JC0v0/Customer-Agent
+
+The upstream README declares "MIT". The checked-out source and the upstream
+main branch inspected on 2026-10-27 do not contain a standalone LICENSE file;
+the GitHub repository metadata reports no detected license. No copyright
+holder, year or complete upstream license notice is invented here. Obtain and
+preserve the applicable full upstream license/copyright notice before public
+redistribution of the derived components.
+
+This is provenance documentation, not a runtime dependency or affiliation.
+The new application does not fetch, update from, or link to the upstream
+repository during startup or build. Third-party package licenses also apply.
+
+The optional WSL browser-login desktop runs separately installed TigerVNC,
+noVNC and websockify. These retain their own licenses (including GPL and MPL);
+their binaries and static assets are not vendored into this repository.
+
+Optional local retrieval models (downloaded separately, not bundled):
+- BAAI/bge-small-zh-v1.5 — MIT — https://huggingface.co/BAAI/bge-small-zh-v1.5
+- BAAI/bge-reranker-base — MIT — https://huggingface.co/BAAI/bge-reranker-base

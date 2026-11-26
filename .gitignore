@@ -1,0 +1,7 @@
+node_modules/
+apps/web/dist/
+.runtime/
+infra/
+docs/
+evals/
+services/core-service/target/

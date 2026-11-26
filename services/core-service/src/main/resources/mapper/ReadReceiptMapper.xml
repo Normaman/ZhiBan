@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pddcopilot.core.mapper.ReadReceiptMapper">
+  <select id="lockShop" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM shops WHERE id=#{shop} FOR UPDATE
+  </select>
+
+  <select id="find" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM platform_read_markers WHERE shop_id=#{shop} AND buyer_ref=#{buyer}
+  </select>
+
+  <insert id="insert">
+    INSERT INTO platform_read_markers VALUES (#{shop},#{buyer},#{last},#{minimum},#{observed})
+  </insert>
+
+  <update id="update">
+    UPDATE platform_read_markers SET
+    user_last_read=#{last},min_supported_message_id=#{minimum},observed_at=#{observed} WHERE shop_id=#{shop}
+    AND buyer_ref=#{buyer}
+  </update>
+</mapper>

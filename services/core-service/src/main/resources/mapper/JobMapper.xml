@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pddcopilot.core.mapper.JobMapper">
+  <select id="claimableJobs" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT j.* FROM jobs j LEFT JOIN agent_runs r ON j.kind='generate' AND r.id=j.reference_id LEFT JOIN
+    messages m ON m.id=r.message_id WHERE ((j.state='pending' AND j.available_at&lt;=#{timestamp}) OR
+    (j.state='running' AND j.locked_until&lt;#{leaseExpiredBefore})) AND (j.kind&lt;&gt;'product_detail' OR (
+    SELECT count(*) FROM jobs active WHERE active.shop_id=j.shop_id AND active.kind='product_detail' AND
+    active.state='running' AND active.locked_until&gt;=#{timestamp}) &lt; 2) AND (j.kind&lt;&gt;'generate' OR
+    ( NOT EXISTS (SELECT 1 FROM jobs a JOIN agent_runs ar ON ar.id=a.reference_id JOIN messages am ON
+    am.id=ar.message_id WHERE a.kind='generate' AND a.state='running' AND a.locked_until&gt;=#{timestamp} AND
+    a.id&lt;&gt;j.id AND am.conversation_id=m.conversation_id) AND NOT EXISTS (SELECT 1 FROM
+    send_command_context sc WHERE sc.conversation_id=m.conversation_id AND sc.state IN
+    ('approved','sending','send_unknown')))) ORDER BY CASE j.kind WHEN 'send' THEN 0 WHEN 'generate' THEN 1
+    ELSE 2 END,j.available_at LIMIT 32
+  </select>
+
+  <select id="findRunConversation" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT m.conversation_id FROM agent_runs r JOIN messages m ON m.id=r.message_id WHERE r.id=#{run}
+  </select>
+
+  <select id="tryLockConversation" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM conversations WHERE id=#{conversationId} FOR UPDATE SKIP LOCKED
+  </select>
+
+  <select id="tryLockJob" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM jobs WHERE id=#{id} FOR UPDATE SKIP LOCKED
+  </select>
+
+  <select id="findJob" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM jobs WHERE id=#{id}
+  </select>
+
+  <select id="countState" resultType="java.lang.Long" useCache="false">
+    SELECT count(*) FROM jobs WHERE state=#{state}
+  </select>
+
+  <select id="findUndelivered" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT j.id,j.available_at FROM jobs j WHERE ((j.state='pending' AND j.available_at&lt;=#{now}) OR
+    (j.state='running' AND j.locked_until&lt;#{now})) AND NOT EXISTS (SELECT 1 FROM job_outbox o WHERE
+    o.job_id=j.id AND o.state IN ('pending','publishing')) AND NOT EXISTS (SELECT 1 FROM job_outbox o WHERE
+    o.job_id=j.id AND o.state='published' AND o.published_at&gt;=#{publicationCooldown}) ORDER BY
+    j.available_at,j.id LIMIT #{limit} FOR UPDATE OF j SKIP LOCKED
+  </select>
+
+  <select id="countUnresolvedSends" resultType="java.lang.Integer" useCache="false">
+    SELECT count(*) FROM send_command_context WHERE conversation_id=#{conversation} AND state IN
+    ('approved','sending','send_unknown')
+  </select>
+
+  <select id="countOtherActiveGenerations" resultType="java.lang.Integer" useCache="false">
+    SELECT count(*) FROM jobs j JOIN agent_runs r ON r.id=j.reference_id JOIN messages m ON m.id=r.message_id
+    WHERE j.kind='generate' AND m.conversation_id=#{conversation} AND j.id&lt;&gt;#{except} AND
+    j.state='running' AND j.locked_until&gt;=#{now}
+  </select>
+
+  <select id="generationCurrent" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM agent_runs WHERE id=#{run}
+  </select>
+
+  <update id="discardJob">
+    UPDATE jobs SET state='done',locked_until=0 WHERE id=#{id}
+  </update>
+
+  <update id="discardRun">
+    UPDATE agent_runs SET state='superseded' WHERE id=#{run}
+  </update>
+
+  <update id="claimJob">
+    UPDATE jobs SET state='running',attempts=#{attempts},locked_until=#{timestamp},claim_id=#{claimId} WHERE
+    id=#{jobId}
+  </update>
+
+  <update id="markCommandSending">
+    UPDATE send_commands SET state='sending',updated_at=#{timestamp} WHERE id=#{referenceId} AND
+    state='approved'
+  </update>
+
+  <update id="markDraftSending">
+    UPDATE drafts SET state='sending' WHERE id IN (SELECT draft_id FROM send_commands WHERE
+    id=#{referenceId}) AND state='approved'
+  </update>
+
+  <update id="markRunRunning">
+    UPDATE agent_runs SET state='running' WHERE id=#{referenceId} AND state='queued'
+  </update>
+
+  <select id="lockJob" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM jobs WHERE id=#{jobId} FOR UPDATE
+  </select>
+
+  <update id="completeJob">
+    UPDATE jobs SET state='done',locked_until=0 WHERE id=#{jobId} AND claim_id=#{claimId}
+  </update>
+
+  <update id="scheduleRetry">
+    UPDATE jobs SET state=#{availableAt},available_at=#{timestamp},locked_until=0 WHERE id=#{jobId} AND
+    claim_id=#{claimId}
+  </update>
+
+  <update id="failRun">
+    UPDATE agent_runs SET state='generation_failed' WHERE id=#{reference}
+  </update>
+
+  <update id="failMessage">
+    UPDATE messages SET state='generation_failed' WHERE id IN (SELECT message_id FROM agent_runs WHERE
+    id=#{reference})
+  </update>
+</mapper>

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pddcopilot.core.mapper.ConversationMapper">
+  <select id="listConversations" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT c.*, (SELECT content FROM messages m WHERE m.conversation_id=c.id AND
+    m.message_type&lt;&gt;'system_hint' ORDER BY created_at DESC LIMIT 1) AS preview, (SELECT count(*) FROM
+    messages unread WHERE unread.conversation_id=c.id AND unread.direction='inbound' AND
+    unread.message_type&lt;&gt;'system_hint' AND NOT EXISTS (SELECT 1 FROM message_reads viewed WHERE
+    viewed.message_id=unread.id AND viewed.reader_username=#{reader})) AS unread_count FROM conversations c
+    WHERE shop_id=#{shopId} ORDER BY updated_at DESC
+  </select>
+
+  <select id="unreadCount" resultType="java.lang.Long" useCache="false">
+    SELECT count(*) FROM messages m WHERE m.conversation_id=#{conversationId} AND m.direction='inbound' AND
+    m.message_type&lt;&gt;'system_hint' AND NOT EXISTS (SELECT 1 FROM message_reads r WHERE r.message_id=m.id
+    AND r.reader_username=#{reader})
+  </select>
+
+  <select id="readMessageIds" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT r.message_id FROM message_reads r JOIN messages m ON m.id=r.message_id WHERE
+    m.conversation_id=#{conversationId} AND r.reader_username=#{reader}
+  </select>
+
+  <select id="readableMessage" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT id FROM messages WHERE id=#{messageId} AND conversation_id=#{conversationId} AND
+    direction='inbound' AND message_type&lt;&gt;'system_hint'
+  </select>
+
+  <insert id="markRead">
+    INSERT INTO message_reads(message_id,reader_username,read_at) SELECT #{messageId},#{reader},#{time} WHERE
+    NOT EXISTS (SELECT 1 FROM message_reads WHERE message_id=#{messageId} AND reader_username=#{reader})
+  </insert>
+
+  <select id="listMessages" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT m.id, m.direction, m.message_type, m.content, m.state, m.occurred_at, m.received_at,
+    m.media_json,m.platform_message_id,CASE WHEN
+    <include refid="com.pddcopilot.core.mapper.SqlFragments.linkedProductCard"/> THEN TRUE ELSE FALSE END AS
+    context_only FROM messages m WHERE m.conversation_id=#{conversationId} ORDER BY m.created_at,m.id
+  </select>
+
+  <select id="listDrafts" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT d.* FROM drafts d JOIN messages m ON m.id=d.message_id WHERE m.conversation_id=#{conversationId}
+    ORDER BY d.updated_at DESC
+  </select>
+
+  <select id="listSendCommands" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT id,draft_id,manual_reply_id,state,attempt,revision,error_code,updated_at,receipt,product_cards
+    FROM send_command_context WHERE conversation_id=#{conversationId} ORDER BY updated_at DESC
+  </select>
+
+  <select id="listAgentRuns" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT r.id,r.message_id,r.conversation_revision,r.state,r.created_at,r.result FROM agent_runs r JOIN
+    messages m ON m.id=r.message_id WHERE m.conversation_id=#{conversationId} ORDER BY r.created_at DESC
+  </select>
+
+  <select id="findPendingSends" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT id FROM send_command_context WHERE conversation_id=#{conversationId} AND state IN
+    ('approved','sending')
+  </select>
+
+  <update id="transferConversation">
+    UPDATE conversations SET state='transferred',revision=revision+1 WHERE id=#{conversationId}
+  </update>
+
+  <update id="resumeConversation">
+    UPDATE conversations SET state='open',revision=revision+1 WHERE id=#{conversationId}
+  </update>
+
+  <select id="hasUnknownSend" resultType="java.lang.Long" useCache="false">
+    SELECT count(*) FROM send_command_context WHERE conversation_id=#{conversationId} AND
+    state='send_unknown'
+  </select>
+
+  <update id="transferDrafts">
+    UPDATE drafts SET state='transferred' WHERE message_id IN (SELECT id FROM messages WHERE
+    conversation_id=#{conversationId}) AND state IN ('waiting_human','outdated','send_failed')
+  </update>
+
+  <select id="listAuditEvents" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM audit_events WHERE shop_id=#{shopId} ORDER BY created_at DESC LIMIT 100
+  </select>
+</mapper>

@@ -1,0 +1,7 @@
+# Keep the server protocol aligned with Playwright Java 1.52.0.
+camoufox[geoip]==0.4.11
+playwright==1.52.0
+fastapi==0.115.12
+uvicorn==0.34.2
+websockets==15.0.1
+psutil==7.0.0

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pddcopilot.core.mapper.ConnectionMapper">
+  <select id="findShop" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM shops WHERE id=#{shopId}
+  </select>
+
+  <select id="findBoundLiveShops" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT id,platform_shop_id,connector_account_id FROM shops WHERE mode='live' AND binding_state='bound'
+    AND platform_shop_id IS NOT NULL AND connector_account_id IS NOT NULL ORDER BY id
+  </select>
+
+  <select id="lockShop" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM shops WHERE id=#{shop} FOR UPDATE
+  </select>
+
+  <update id="updateConnection">
+    UPDATE shops SET
+    connection_state=#{state},connection_seen_at=#{timestamp},connection_epoch=#{epoch},connection_sequence=#{sequence},connection_error_code=#{errorCode}
+    WHERE id=#{shop}
+  </update>
+
+  <update id="updateProfile">
+    UPDATE shops SET name=CASE WHEN name IN ('拼多多店铺','我的店铺') OR name=platform_name THEN #{name} ELSE name
+    END,platform_name=#{name},avatar_url=#{avatar},main_category=#{category},profile_updated_at=#{observedAt}
+    WHERE id=#{shop}
+  </update>
+</mapper>

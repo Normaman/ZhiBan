@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pddcopilot.core.mapper.InboxMapper">
+  <select id="isApprovedPart" resultType="java.lang.Integer" useCache="false">
+    SELECT count(*) FROM send_command_context WHERE conversation_id=#{conversation} AND state IN
+    ('approved','sending') AND product_cards&lt;&gt;'[]' AND final_content=#{content}
+  </select>
+
+  <update id="mergeOutboundCard">
+    UPDATE messages SET content=#{content},media_json=coalesce(#{media},media_json),payload_hash=#{digest}
+    WHERE id=#{id}
+  </update>
+
+  <select id="lockShop" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM shops WHERE id=#{shopId} FOR UPDATE
+  </select>
+
+  <select id="findDuplicateMessages" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM messages WHERE shop_id=#{shopId} AND (event_id=#{eventId} OR
+    platform_message_id=#{platformMessageId})
+  </select>
+
+  <select id="lockBuyerConversation" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM conversations WHERE shop_id=#{shopId} AND buyer_ref=#{buyerRef} FOR UPDATE
+  </select>
+
+  <insert id="insertConversation">
+    INSERT INTO conversations(id,shop_id,buyer_ref,updated_at) VALUES
+    (#{conversationId},#{shopId},#{buyerRef},#{timestamp})
+  </insert>
+
+  <update id="advanceConversation">
+    UPDATE conversations SET revision=revision+1,updated_at=#{timestamp} WHERE id=#{conversationId}
+  </update>
+
+  <update id="invalidateDrafts">
+    UPDATE drafts SET state='outdated' WHERE message_id IN (SELECT id FROM messages WHERE
+    conversation_id=#{conversationId}) AND state='waiting_human'
+  </update>
+
+  <insert id="insertInboundMessage">
+    INSERT INTO
+    messages(id,shop_id,conversation_id,platform_message_id,event_id,direction,message_type,content,occurred_at,received_at,payload_hash,state,created_at)
+    VALUES
+    (#{messageId},#{shopId},#{conversationId},#{platformMessageId},#{eventId},#{direction},#{messageType},#{content},#{occurredAt},#{receivedAt},#{digest},'persisted',#{timestamp})
+  </insert>
+
+  <update id="markHumanReview">
+    UPDATE messages SET state='waiting_human' WHERE id=#{messageId}
+  </update>
+
+  <update id="saveMedia">
+    UPDATE messages SET media_json=#{media},related_platform_message_id=#{related} WHERE id=#{messageId}
+  </update>
+
+  <update id="markOutboundSent">
+    UPDATE messages SET state='sent' WHERE id=#{messageId}
+  </update>
+
+  <select id="generatedQuestionForSource" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT m.id FROM messages m JOIN reply_questions q ON q.message_id=m.id WHERE
+    m.conversation_id=#{conversation} AND m.platform_message_id=#{platformId} AND q.answered_at IS NULL AND
+    EXISTS (SELECT 1 FROM reply_run_messages rm JOIN agent_runs r ON r.id=rm.run_id WHERE rm.message_id=m.id
+    AND r.state IN ('running','completed')) AND NOT EXISTS (SELECT 1 FROM reply_command_messages cm WHERE
+    cm.message_id=m.id)
+  </select>
+
+  <select id="questionForProductCard" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT m.id,q.answered_at,CASE WHEN EXISTS (SELECT 1 FROM reply_command_messages cm WHERE
+    cm.message_id=m.id) THEN FALSE ELSE TRUE END AS can_generate FROM messages m JOIN reply_questions q ON
+    q.message_id=m.id WHERE m.conversation_id=#{conversation} AND m.platform_message_id=#{platformId} AND
+    m.direction='inbound' AND m.message_type IN ('text','emotion')
+  </select>
+</mapper>

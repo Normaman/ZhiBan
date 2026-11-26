@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pddcopilot.core.mapper.KnowledgeMapper">
+  <select id="lockShop" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM shops WHERE id=#{shop} FOR UPDATE
+  </select>
+
+  <select id="findVersion" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM knowledge_versions WHERE shop_id=#{shopId} AND version_label=#{version}
+  </select>
+
+  <insert id="insertVersion">
+    INSERT INTO knowledge_versions(id,shop_id,snapshot,created_at,version_label) VALUES
+    (#{version},#{shop},#{snapshot},#{timestamp},#{label})
+  </insert>
+
+  <update id="activateVersion">
+    UPDATE shops SET knowledge_version=#{version} WHERE id=#{shop}
+  </update>
+
+  <insert id="insertProductSnapshot">
+    INSERT INTO product_snapshots(id,shop_id,products,created_at,checked_at) VALUES
+    (#{snapshot},#{shop},#{payloadJson},#{timestamp},#{timestamp})
+  </insert>
+
+  <update id="checkedProducts">
+    UPDATE product_snapshots SET checked_at=#{now} WHERE id=#{id}
+  </update>
+
+  <select id="listVersions" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT k.id,k.version_label,k.snapshot,k.created_at, COALESCE(k.id=s.knowledge_version,FALSE) AS active
+    FROM knowledge_versions k JOIN shops s ON s.id=k.shop_id WHERE k.shop_id=#{shop} ORDER BY k.created_at
+    DESC
+  </select>
+
+  <select id="activeVersion" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT k.* FROM knowledge_versions k JOIN shops s ON s.knowledge_version=k.id WHERE s.id=#{shop} AND
+    k.shop_id=s.id
+  </select>
+
+  <select id="findLatestProducts" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM product_snapshots WHERE shop_id=#{shop} ORDER BY created_at DESC LIMIT 1
+  </select>
+</mapper>

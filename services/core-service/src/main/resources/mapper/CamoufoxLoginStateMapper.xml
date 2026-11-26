@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pddcopilot.core.mapper.CamoufoxLoginStateMapper">
+  <select id="exists" resultType="java.lang.Boolean" useCache="false">
+    SELECT EXISTS(SELECT 1 FROM camoufox_login_states WHERE shop_id=#{shop} AND invalidated_at IS NULL)
+  </select>
+
+  <select id="load" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM camoufox_login_states WHERE shop_id=#{shop}
+  </select>
+
+  <insert id="save">
+    INSERT INTO camoufox_login_states
+    (shop_id,platform_shop_id,account_id,encrypted_state,revision,updated_at,invalidated_at) VALUES
+    (#{shop},#{platformShop},#{account},#{scope},#{value},#{now},NULL) ON CONFLICT (shop_id) DO UPDATE SET
+    platform_shop_id=EXCLUDED.platform_shop_id, account_id=EXCLUDED.account_id,
+    encrypted_state=EXCLUDED.encrypted_state, revision=EXCLUDED.revision, updated_at=EXCLUDED.updated_at,
+    invalidated_at=NULL
+  </insert>
+
+  <update id="refresh">
+    UPDATE camoufox_login_states SET encrypted_state=#{scope},revision=#{value},updated_at=#{now} WHERE
+    shop_id=#{shop} AND revision=#{revision} AND invalidated_at IS NULL
+  </update>
+
+  <update id="invalidate">
+    UPDATE camoufox_login_states SET invalidated_at=#{now} WHERE shop_id=#{shop} AND revision=#{revision}
+  </update>
+</mapper>

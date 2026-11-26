@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pddcopilot.core.mapper.SqlFragments">
+  <sql id="linkedProductCard">
+    (m.direction='inbound' AND m.message_type='goods_inquiry' AND m.related_platform_message_id IS NOT NULL
+    AND EXISTS (SELECT 1 FROM messages original JOIN reply_questions original_question ON
+    original_question.message_id=original.id WHERE original.conversation_id=m.conversation_id AND
+    original.platform_message_id=m.related_platform_message_id AND original.direction='inbound' AND
+    original.message_type IN ('text','emotion')))
+  </sql>
+</mapper>

@@ -1,0 +1,4 @@
+# CPU-only Docker extra; independent from the optional CUDA development environment.
+sentence-transformers==5.7.0
+psycopg[binary]>=3.2,<4
+torch>=2.6,<3

@@ -1,0 +1,10 @@
+{
+  "python.defaultInterpreterPath": "${env:HOME}/miniconda3/envs/dl/bin/python",
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "files.watcherExclude": {
+    "**/.runtime/**": true,
+    "**/target/**": true,
+    "**/node_modules/**": true
+  },
+  "java.compile.nullAnalysis.mode": "automatic"
+}

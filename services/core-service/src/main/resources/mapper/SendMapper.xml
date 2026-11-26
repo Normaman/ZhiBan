@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pddcopilot.core.mapper.SendMapper">
+  <select id="findApprovedCommand" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM send_command_context WHERE id=#{commandId}
+  </select>
+
+  <select id="lockCommand" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM send_commands WHERE id=#{commandId} FOR UPDATE
+  </select>
+
+  <select id="lockShop" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT id FROM shops WHERE id=#{shopId} FOR UPDATE
+  </select>
+
+  <select id="platformMessage" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM messages WHERE shop_id=#{shop} AND platform_message_id=#{platformId}
+  </select>
+
+  <update id="bindOutbound">
+    UPDATE messages SET
+    event_id=#{event},platform_message_id=coalesce(platform_message_id,#{platformId}),state='sent' WHERE
+    id=#{id}
+  </update>
+
+  <update id="prepareRetry">
+    UPDATE send_commands SET state='approved', attempt=attempt+1, error_code=NULL,updated_at=#{timestamp}
+    WHERE id=#{commandId}
+  </update>
+
+  <update id="requeueSendJob">
+    UPDATE jobs SET state='pending', attempts=0, available_at=#{timestamp},locked_until=0,claim_id=NULL WHERE
+    kind='send' AND reference_id=#{commandId}
+  </update>
+
+  <update id="markDraftApproved">
+    UPDATE drafts SET state='approved' WHERE id=#{draftId}
+  </update>
+
+  <update id="recordCommandResult">
+    UPDATE send_commands SET
+    state=#{state},receipt=#{payloadJson},error_code=#{errorCode},updated_at=#{timestamp} WHERE
+    id=#{commandId}
+  </update>
+
+  <update id="recordDraftResult">
+    UPDATE drafts SET state=#{state},updated_at=#{timestamp} WHERE id=#{draftId}
+  </update>
+
+  <update id="recordMessageResult">
+    UPDATE messages SET state=#{state} WHERE id IN (SELECT message_id FROM drafts WHERE id=#{draftId})
+  </update>
+
+  <select id="findOutboundMessage" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM messages WHERE shop_id=#{shopId} AND event_id=#{event}
+  </select>
+
+  <insert id="insertOutboundMessage">
+    INSERT INTO
+    messages(id,shop_id,conversation_id,platform_message_id,event_id,direction,message_type,content,received_at,payload_hash,state,created_at)
+    VALUES
+    (#{recordId},#{shopId},#{conversationId},#{platformMessageId},#{event},'outbound','text',#{finalContent},#{receivedAt},#{payloadHash},'sent',#{timestamp})
+  </insert>
+
+  <insert id="insertOutboundPart">
+    INSERT INTO
+    messages(id,shop_id,conversation_id,platform_message_id,event_id,direction,message_type,content,received_at,payload_hash,state,created_at,media_json)
+    VALUES
+    (#{id},#{shop},#{conversation},#{platform},#{event},'outbound',#{type},#{content},#{value},#{sha256},'sent',#{timestamp},#{media})
+  </insert>
+</mapper>

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>测试集工作台</title>
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">T</span><div><strong>测试集工作台</strong><small>本地开发工具 · 不调用模型</small></div></div>
+    <div class="actions">
+      <button id="new-case" class="primary">新建用例</button>
+      <button id="import-button">导入测试集</button><button id="export-button">导出测试集</button>
+      <button id="refresh-button" class="quiet">刷新</button>
+      <input id="file-input" type="file" accept=".jsonl,.ndjson,.json,application/json" hidden>
+    </div>
+  </header>
+  <main class="layout">
+    <aside class="sidebar">
+      <div class="section-label">测试集</div>
+      <button class="suite active" data-suite="agent"><span>客服回答测试</span><b id="agent-count">—</b><small>检查回答是否准确、合适</small></button>
+      <button class="suite" data-suite="knowledge"><span>知识资料整理测试</span><b id="knowledge-count">—</b><small>检查资料能否正确拆分归类</small></button>
+      <div class="side-note"><span class="dot"></span>本地文件模式
+        <p>数据保存在独立目录。修改会自动生成备份，不影响线上服务。</p>
+      </div>
+    </aside>
+    <section class="content">
+      <div class="heading"><div><h1 id="suite-title">客服回答测试</h1><p id="data-location">正在读取本地数据…</p></div>
+        <div class="stats"><div><strong id="total-count">0</strong><span>全部用例</span></div><div><strong id="dev-count">0</strong><span>日常调试</span></div><div><strong id="test-count">0</strong><span>验收检查</span></div></div>
+      </div>
+      <div class="toolbar"><label class="search"><span>⌕</span><input id="search" placeholder="搜索问题、场景或资料内容"></label>
+        <select id="split-filter" aria-label="筛选用例用途"><option value="all">全部用途</option><option value="dev">日常调试</option><option value="test">验收检查</option></select>
+        <button id="score-button" class="score-button" hidden>检查解析效果</button>
+        <span id="dirty-state" class="saved">已保存</span>
+      </div>
+      <section id="score-results" class="score-results" hidden></section>
+      <div class="workarea">
+        <div class="case-panel"><div class="panel-title"><strong>用例列表</strong><span id="visible-count"></span></div><div id="case-list" class="case-list"></div></div>
+        <div class="editor-panel"><div class="panel-title editor-title"><div><strong id="editor-heading">选择一个用例</strong><span id="editor-subtitle">选择用例后可查看和编辑内容</span></div><div class="editor-actions"><button id="delete-case" class="danger" disabled>删除</button><button id="save-case" class="primary" disabled>保存用例</button></div></div>
+          <div class="editor-help"><span>填写问题、资料和理想回答；保存时会检查内容是否完整。</span><span id="validation-state">—</span></div>
+          <div id="form-editor" class="form-editor"><div class="empty-editor">从左侧选择一条测试用例，或点击“新建用例”。</div></div>
+          <details class="advanced-editor"><summary>高级设置（完整数据）</summary><textarea id="json-editor" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="选择用例后显示高级字段"></textarea></details>
+          <div id="message" class="message" role="status"></div>
+        </div>
+      </div>
+      <footer>仅供本地开发使用 · 保存前自动备份 · 导出文件可用于后续评测</footer>
+    </section>
+  </main>
+  <script src="/app.js" defer></script>
+</body>
+</html>

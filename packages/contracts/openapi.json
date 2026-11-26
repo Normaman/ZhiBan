@@ -1,0 +1,3736 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "PDD Copilot internal and approval contracts",
+    "version": "0.1.0",
+    "description": "Internal identifiers are business fields, not claims about native PDD fields. See docs/copilot-runbook.md."
+  },
+  "paths": {
+    "/api/v1/auth/register": {
+      "post": {
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Registration"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Merchant activation code creates a private workspace and owner; a single-use team invitation joins its workspace as reviewer"
+          },
+          "400": {
+            "description": "Invalid account or password; password UTF-8 length must be <=72 bytes"
+          },
+          "403": {
+            "description": "Invalid invitation"
+          },
+          "409": {
+            "description": "Username exists"
+          },
+          "429": {
+            "description": "Registration attempt limit reached"
+          },
+          "503": {
+            "description": "Registration disabled or rate limiter unavailable"
+          }
+        }
+      }
+    },
+    "/internal/v1/pdd/messages": {
+      "post": {
+        "security": [
+          {
+            "internalToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InboundMessage"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accepted or replayed original result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message_id",
+                    "conversation_id"
+                  ],
+                  "properties": {
+                    "message_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
+                    },
+                    "conversation_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Shop or account forbidden"
+          },
+          "409": {
+            "description": "Version / idempotency / state conflict"
+          },
+          "422": {
+            "description": "Invalid request"
+          }
+        },
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "X-Shop-Id",
+            "in": "header",
+            "required": false,
+            "description": "Select a shop. Browser access requires current workspace membership; trusted internal callers and queued workers retain their pinned shop.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ]
+      }
+    },
+    "/internal/v1/agent-runs": {
+      "post": {
+        "security": [
+          {
+            "internalToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accepted or replayed original result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Shop or account forbidden"
+          },
+          "409": {
+            "description": "Version / idempotency / state conflict"
+          },
+          "422": {
+            "description": "Invalid request"
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Shop-Id",
+            "in": "header",
+            "required": false,
+            "description": "Select a shop. Browser access requires current workspace membership; trusted internal callers and queued workers retain their pinned shop.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/reply-drafts/{draft_id}/decisions": {
+      "post": {
+        "security": [
+          {
+            "reviewer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Decision"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accepted or replayed original result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Shop or account forbidden"
+          },
+          "409": {
+            "description": "Version / idempotency / state conflict"
+          },
+          "422": {
+            "description": "Invalid request"
+          }
+        },
+        "parameters": [
+          {
+            "name": "draft_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "X-Shop-Id",
+            "in": "header",
+            "required": false,
+            "description": "Select a shop. Browser access requires current workspace membership; trusted internal callers and queued workers retain their pinned shop.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/conversations/{conversation_id}/manual-replies": {
+      "post": {
+        "security": [
+          {
+            "reviewer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualReply"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accepted or replayed original result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Shop or account forbidden"
+          },
+          "409": {
+            "description": "Version / idempotency / state conflict"
+          },
+          "422": {
+            "description": "Invalid request"
+          }
+        },
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "X-Shop-Id",
+            "in": "header",
+            "required": false,
+            "description": "Select a shop. Browser access requires current workspace membership; trusted internal callers and queued workers retain their pinned shop.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/model-config": {
+      "post": {
+        "security": [
+          {
+            "administrator": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModelConfigurationInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accepted or replayed original result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Shop or account forbidden"
+          },
+          "409": {
+            "description": "Version / idempotency / state conflict"
+          },
+          "422": {
+            "description": "Invalid request"
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Shop-Id",
+            "in": "header",
+            "required": false,
+            "description": "Select a shop. Browser access requires current workspace membership; trusted internal callers and queued workers retain their pinned shop.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ]
+      },
+      "get": {
+        "security": [
+          {
+            "administrator": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Redacted configuration metadata only; never contains API key or ciphertext"
+          },
+          "403": {
+            "description": "Administrator required"
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Shop-Id",
+            "in": "header",
+            "required": false,
+            "description": "Select a shop. Browser access requires current workspace membership; trusted internal callers and queued workers retain their pinned shop.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/model-config/{id}/test": {
+      "post": {
+        "security": [
+          {
+            "administrator": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigurationRevision"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accepted or replayed original result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Shop or account forbidden"
+          },
+          "409": {
+            "description": "Version / idempotency / state conflict"
+          },
+          "422": {
+            "description": "Invalid request"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "X-Shop-Id",
+            "in": "header",
+            "required": false,
+            "description": "Select a shop. Browser access requires current workspace membership; trusted internal callers and queued workers retain their pinned shop.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/model-config/{id}/activate": {
+      "post": {
+        "security": [
+          {
+            "administrator": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigurationRevision"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accepted or replayed original result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Shop or account forbidden"
+          },
+          "409": {
+            "description": "Version / idempotency / state conflict"
+          },
+          "422": {
+            "description": "Invalid request"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "X-Shop-Id",
+            "in": "header",
+            "required": false,
+            "description": "Select a shop. Browser access requires current workspace membership; trusted internal callers and queued workers retain their pinned shop.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/model-config/disable": {
+      "post": {
+        "security": [
+          {
+            "administrator": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigurationRevision"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accepted or replayed original result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Shop or account forbidden"
+          },
+          "409": {
+            "description": "Version / idempotency / state conflict"
+          },
+          "422": {
+            "description": "Invalid request"
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Shop-Id",
+            "in": "header",
+            "required": false,
+            "description": "Select a shop. Browser access requires current workspace membership; trusted internal callers and queued workers retain their pinned shop.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ]
+      }
+    },
+    "/internal/v1/model-config/test": {
+      "post": {
+        "security": [
+          {
+            "internalToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModelConfigurationTest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accepted or replayed original result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "passed": {
+                      "type": "boolean"
+                    },
+                    "error_code": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Shop or account forbidden"
+          },
+          "409": {
+            "description": "Version / idempotency / state conflict"
+          },
+          "422": {
+            "description": "Invalid request"
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Shop-Id",
+            "in": "header",
+            "required": false,
+            "description": "Select a shop. Browser access requires current workspace membership; trusted internal callers and queued workers retain their pinned shop.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ]
+      }
+    },
+    "/internal/v1/shops/{shop_id}/model-config": {
+      "get": {
+        "security": [
+          {
+            "internalToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "shop_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "X-Shop-Id",
+            "in": "header",
+            "required": false,
+            "description": "Select a shop. Browser access requires current workspace membership; trusted internal callers and queued workers retain their pinned shop.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Private service-only active configuration, may include plaintext api_key; Cache-Control no-store. Never expose to a browser."
+          },
+          "403": {
+            "description": "Shop forbidden"
+          }
+        }
+      }
+    },
+    "/internal/v1/shops/{id}/profile": {
+      "post": {
+        "security": [
+          {
+            "internalToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShopProfile"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accepted or replayed original result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Shop or account forbidden"
+          },
+          "409": {
+            "description": "Version / idempotency / state conflict"
+          },
+          "422": {
+            "description": "Invalid request"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "X-Shop-Id",
+            "in": "header",
+            "required": false,
+            "description": "Select a shop. Browser access requires current workspace membership; trusted internal callers and queued workers retain their pinned shop.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ]
+      }
+    },
+    "/internal/v1/pdd/products/details": {
+      "post": {
+        "security": [
+          {
+            "internalToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductDetailRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accepted or replayed original result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Verified current shop product details, category path, attributes, specification labels, dated stock snapshot and approved platform image URLs"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Shop or account forbidden"
+          },
+          "409": {
+            "description": "Version / idempotency / state conflict"
+          },
+          "422": {
+            "description": "Invalid request"
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Shop-Id",
+            "in": "header",
+            "required": false,
+            "description": "Select a shop. Browser access requires current workspace membership; trusted internal callers and queued workers retain their pinned shop.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/shops/{id}/products/metadata-syncs": {
+      "post": {
+        "security": [
+          {
+            "reviewer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "force",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "X-Shop-Id",
+            "in": "header",
+            "required": false,
+            "description": "Select a shop. Browser access requires current workspace membership; trusted internal callers and queued workers retain their pinned shop.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the active run or checks owned catalog: reuses unchanged successful details under six hours, otherwise enqueues durable tasks; force bypasses reuse"
+          },
+          "409": {
+            "description": "Shop not bound or base catalog not synchronized"
+          }
+        }
+      },
+      "get": {
+        "security": [
+          {
+            "reviewer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "X-Shop-Id",
+            "in": "header",
+            "required": false,
+            "description": "Select a shop. Browser access requires current workspace membership; trusted internal callers and queued workers retain their pinned shop.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Latest run state, updated_at and total/completed/skipped/failed counts"
+          }
+        }
+      }
+    },
+    "/api/v1/shops/{id}/products/{goods_id}/details": {
+      "get": {
+        "security": [
+          {
+            "reviewer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "goods_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          {
+            "name": "X-Shop-Id",
+            "in": "header",
+            "required": false,
+            "description": "Select a shop. Browser access requires current workspace membership; trusted internal callers and queued workers retain their pinned shop.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cached normalized detail or null when not synchronized; inventory is a dated snapshot"
+          },
+          "403": {
+            "description": "Shop forbidden"
+          },
+          "404": {
+            "description": "Product absent from this shop's latest catalog"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/shops": {
+      "post": {
+        "security": [
+          {
+            "administrator": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShopName"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accepted or replayed original result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "shop_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Shop or account forbidden"
+          },
+          "409": {
+            "description": "Version / idempotency / state conflict"
+          },
+          "422": {
+            "description": "Invalid request"
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Shop-Id",
+            "in": "header",
+            "required": false,
+            "description": "Select a shop. Browser access requires current workspace membership; trusted internal callers and queued workers retain their pinned shop.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/shop/name": {
+      "post": {
+        "security": [
+          {
+            "administrator": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShopName"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accepted or replayed original result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Shop or account forbidden"
+          },
+          "409": {
+            "description": "Version / idempotency / state conflict"
+          },
+          "422": {
+            "description": "Invalid request"
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Shop-Id",
+            "in": "header",
+            "required": false,
+            "description": "Select a shop. Browser access requires current workspace membership; trusted internal callers and queued workers retain their pinned shop.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/shop/connector-binding": {
+      "post": {
+        "security": [
+          {
+            "administrator": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectorBinding"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accepted or replayed original result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Shop or account forbidden"
+          },
+          "409": {
+            "description": "Version / idempotency / state conflict"
+          },
+          "422": {
+            "description": "Invalid request"
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Connector-Enrollment-Token",
+            "in": "header",
+            "required": true,
+            "description": "Deployment-only enrollment secret in addition to workspace administrator authentication; never sent to the merchant browser.",
+            "schema": {
+              "type": "string",
+              "writeOnly": true
+            }
+          },
+          {
+            "name": "X-Shop-Id",
+            "in": "header",
+            "required": false,
+            "description": "Select a shop. Browser access requires current workspace membership; trusted internal callers and queued workers retain their pinned shop.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/workspace/invitations": {
+      "post": {
+        "security": [
+          {
+            "administrator": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Shop-Id",
+            "in": "header",
+            "required": false,
+            "description": "Select a shop. Browser access requires current workspace membership; trusted internal callers and queued workers retain their pinned shop.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invite created (plaintext token returned only once) or revoked"
+          },
+          "403": {
+            "description": "Workspace administrator required"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/workspace/invitations/{id}/revoke": {
+      "post": {
+        "security": [
+          {
+            "administrator": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "X-Shop-Id",
+            "in": "header",
+            "required": false,
+            "description": "Select a shop. Browser access requires current workspace membership; trusted internal callers and queued workers retain their pinned shop.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invite created (plaintext token returned only once) or revoked"
+          },
+          "403": {
+            "description": "Workspace administrator required"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/workspace": {
+      "get": {
+        "security": [
+          {
+            "administrator": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current workspace, shops, members and redacted invitations"
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Shop-Id",
+            "in": "header",
+            "required": false,
+            "description": "Select a shop. Browser access requires current workspace membership; trusted internal callers and queued workers retain their pinned shop.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/messages/{message_id}/agent-runs": {
+      "post": {
+        "security": [
+          {
+            "reviewer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "message_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "X-Shop-Id",
+            "in": "header",
+            "required": false,
+            "description": "Select a shop. Browser access requires current workspace membership; trusted internal callers and queued workers retain their pinned shop.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "single",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Explicitly retry only this pending question, including older questions; decided/sent drafts remain immutable."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Queued a new run for the existing inbound message; no send"
+          },
+          "409": {
+            "description": "Run in progress, message not eligible, or draft already decided"
+          },
+          "403": {
+            "description": "Shop membership required"
+          }
+        }
+      }
+    },
+    "/api/v1/conversations/{id}": {
+      "get": {
+        "description": "按店铺权限读取会话。pending_questions 只包含尚无成功发送覆盖的咨询；每份草稿的 covered_questions 是生成批次覆盖清单。生成上下文另含 pending_questions，逐项处理，不以历史窗口截断代替待回复清单。",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "会话详情",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "pending_questions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PendingQuestion"
+                      }
+                    },
+                    "drafts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "covered_questions": {
+                            "type": "array",
+                            "items": {
+                              "$ref": "#/components/schemas/PendingQuestion"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "messages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "context_only": {
+                            "type": "boolean",
+                            "description": "明确关联本会话文字咨询的商品来源卡片，仅提供上下文，不作为独立待回复咨询。"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/shops/{id}/knowledge/preview": {
+      "post": {
+        "summary": "Parse document into unpublished chunks; no model call or knowledge write",
+        "security": [
+          {
+            "reviewer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DocumentPreviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Preview only; review warnings before publication",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentPreview"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Document rejected; safe DOCUMENT_* error code"
+          },
+          "429": {
+            "description": "Two parser processes already busy"
+          },
+          "403": {
+            "description": "Shop access denied"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/internal/v1/knowledge/preview": {
+      "post": {
+        "summary": "Parse document into unpublished chunks; no model call or knowledge write",
+        "security": [
+          {
+            "internalToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DocumentPreviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Preview only; review warnings before publication",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentPreview"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Document rejected; safe DOCUMENT_* error code"
+          },
+          "429": {
+            "description": "Two parser processes already busy"
+          },
+          "403": {
+            "description": "Shop access denied"
+          }
+        }
+      }
+    },
+    "/api/v1/shops/{id}/knowledge": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "post": {
+        "security": [
+          {
+            "reviewer": []
+          }
+        ],
+        "summary": "Administrator direct immutable publish; ordinary edits use reviewed proposals",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KnowledgePublish"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Published knowledge_version"
+          },
+          "409": {
+            "description": "Base version conflict or attempt to overwrite immutable version"
+          },
+          "422": {
+            "description": "Invalid entry, category, source or product binding"
+          },
+          "403": {
+            "description": "Shop access denied"
+          }
+        },
+        "description": "Requires ADMIN role in addition to shop access. CSRF is required for browser mutations."
+      }
+    },
+    "/api/v1/shops/{id}/knowledge/retrieval": {
+      "get": {
+        "security": [
+          {
+            "reviewer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Local retrieval mode, embedding/reranker identifiers and pgvector storage; per-query fallback is in tool traces"
+          },
+          "403": {
+            "description": "Shop access denied"
+          }
+        }
+      }
+    },
+    "/api/v1/reply-drafts/{draft_id}/product-cards": {
+      "post": {
+        "security": [
+          {
+            "internalToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftCardReplacement"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accepted or replayed original result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Shop or account forbidden"
+          },
+          "409": {
+            "description": "Version / idempotency / state conflict"
+          },
+          "422": {
+            "description": "Invalid request"
+          }
+        }
+      }
+    },
+    "/api/v1/reply-drafts/{draft_id}/product-candidates": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "本店最近同步的商品候选，实际应用时重新查询库存。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/shops/{id}/orders/overview": {
+      "get": {
+        "summary": "Read-only Pinduoduo merchant order status counts",
+        "security": [
+          {
+            "reviewer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "X-Shop-Id",
+            "in": "header",
+            "required": false,
+            "description": "Select a shop within the current workspace.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Live merchant-page counts; cached for up to 60 seconds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "shop_id",
+                    "counts",
+                    "fetched_at",
+                    "details_available"
+                  ],
+                  "properties": {
+                    "shop_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
+                    },
+                    "fetched_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "details_available": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "counts": {
+                      "type": "object",
+                      "required": [
+                        "unshipped",
+                        "shipped",
+                        "waitPay",
+                        "refunding"
+                      ],
+                      "properties": {
+                        "unshipped": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "shipped": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "waitPay": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "refunding": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Shop membership required"
+          },
+          "502": {
+            "description": "Platform session, throttling or response schema unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/shop/order-query/verification": {
+      "post": {
+        "summary": "管理员打开当前订单的安全核验桌面",
+        "security": [
+          {
+            "administrator": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Shop-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderQuery"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "仅返回实际取得的只读状态；查询失败时状态保持 unknown，并附固定错误码",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/OrderQueryResult"
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "viewer_url"
+                      ],
+                      "properties": {
+                        "viewer_url": {
+                          "type": "string",
+                          "description": "同源 noVNC 地址，密码仅位于 URL fragment，不应记录或转发"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "订单或买家引用不完整"
+          },
+          "401": {
+            "description": "需要登录"
+          },
+          "403": {
+            "description": "店铺访问权限或操作角色不足"
+          }
+        }
+      }
+    },
+    "/api/v1/shop/order-query/retry": {
+      "post": {
+        "summary": "重新读取订单；完成平台验证后可解除本店本次验证冷却",
+        "security": [
+          {
+            "reviewer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Shop-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderQuery"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "仅返回实际取得的只读状态；查询失败时状态保持 unknown，并附固定错误码",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderQueryResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "订单或买家引用不完整"
+          },
+          "401": {
+            "description": "需要登录"
+          },
+          "403": {
+            "description": "店铺访问权限或操作角色不足"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/shop/order-query/close": {
+      "post": {
+        "summary": "关闭本店核验桌面入口，保留后台订单浏览器",
+        "security": [
+          {
+            "administrator": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Shop-Id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "核验入口已关闭"
+          },
+          "401": {
+            "description": "需要登录"
+          },
+          "403": {
+            "description": "店铺访问权限或操作角色不足"
+          }
+        }
+      }
+    },
+    "/api/v1/shops/{id}/knowledge/search": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "post": {
+        "security": [
+          {
+            "reviewer": []
+          }
+        ],
+        "summary": "Diagnose retrieval over current shop published effective knowledge; no LLM calls",
+        "responses": {
+          "200": {
+            "description": "Completed"
+          },
+          "403": {
+            "description": "Role, author or shop scope denied"
+          },
+          "409": {
+            "description": "Revision, current knowledge version or review state conflict"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KnowledgeSearchQuery"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/shops/{id}/knowledge/proposals": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "security": [
+          {
+            "reviewer": []
+          }
+        ],
+        "summary": "List latest 30 knowledge proposals without snapshot bodies",
+        "responses": {
+          "200": {
+            "description": "Completed"
+          },
+          "403": {
+            "description": "Role, author or shop scope denied"
+          },
+          "409": {
+            "description": "Revision, current knowledge version or review state conflict"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        }
+      },
+      "post": {
+        "security": [
+          {
+            "reviewer": []
+          }
+        ],
+        "summary": "Save a draft proposal without activating a version",
+        "responses": {
+          "200": {
+            "description": "Completed"
+          },
+          "403": {
+            "description": "Role, author or shop scope denied"
+          },
+          "409": {
+            "description": "Revision, current knowledge version or review state conflict"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KnowledgePublish"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/shops/{id}/knowledge/proposals/{proposal}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "proposal",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "security": [
+          {
+            "reviewer": []
+          }
+        ],
+        "summary": "Read proposal diff and heuristic duplicate warnings",
+        "responses": {
+          "200": {
+            "description": "Completed"
+          },
+          "403": {
+            "description": "Role, author or shop scope denied"
+          },
+          "409": {
+            "description": "Revision, current knowledge version or review state conflict"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        }
+      }
+    },
+    "/api/v1/shops/{id}/knowledge/proposals/{proposal}/decisions": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "proposal",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "post": {
+        "security": [
+          {
+            "reviewer": []
+          }
+        ],
+        "summary": "Author submits or withdraws a proposal",
+        "responses": {
+          "200": {
+            "description": "Completed"
+          },
+          "403": {
+            "description": "Role, author or shop scope denied"
+          },
+          "409": {
+            "description": "Revision, current knowledge version or review state conflict"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KnowledgeReviewDecision"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/shops/{id}/knowledge/proposals/{proposal}/decisions": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "proposal",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "post": {
+        "security": [
+          {
+            "reviewer": []
+          }
+        ],
+        "summary": "Administrator approves or rejects a proposal with optimistic locking",
+        "responses": {
+          "200": {
+            "description": "Completed"
+          },
+          "403": {
+            "description": "Role, author or shop scope denied"
+          },
+          "409": {
+            "description": "Revision, current knowledge version or review state conflict"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KnowledgeReviewDecision"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/workspace/members/{id}": {
+      "patch": {
+        "summary": "管理员停用或启用当前工作空间的客服成员",
+        "description": "Authenticated same-workspace access, CSRF protection and optimistic revision checks apply.",
+        "security": [
+          {
+            "reviewer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkspaceMemberStatus"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated"
+          },
+          "403": {
+            "description": "Access denied or recent password verification required"
+          },
+          "404": {
+            "description": "Not found in authorized scope"
+          },
+          "409": {
+            "description": "Revision, base version or state conflict"
+          }
+        }
+      },
+      "delete": {
+        "summary": "管理员移除当前工作空间成员，保留身份及历史记录",
+        "description": "Authenticated same-workspace access, CSRF protection and optimistic revision checks apply.",
+        "security": [
+          {
+            "reviewer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkspaceMemberRevision"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated"
+          },
+          "403": {
+            "description": "Access denied or recent password verification required"
+          },
+          "404": {
+            "description": "Not found in authorized scope"
+          },
+          "409": {
+            "description": "Revision, base version or state conflict"
+          }
+        }
+      }
+    },
+    "/api/v1/shops/{shop}/knowledge/proposals/{id}": {
+      "put": {
+        "summary": "作者编辑草稿、已驳回或已撤回变更；保存为草稿并保留修改历史",
+        "description": "Authenticated same-workspace access, CSRF protection and optimistic revision checks apply.",
+        "security": [
+          {
+            "reviewer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "shop",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KnowledgeProposalUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated"
+          },
+          "403": {
+            "description": "Access denied or recent password verification required"
+          },
+          "404": {
+            "description": "Not found in authorized scope"
+          },
+          "409": {
+            "description": "Revision, base version or state conflict"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "internalToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Internal-Token"
+      },
+      "reviewer": {
+        "type": "http",
+        "scheme": "basic"
+      },
+      "administrator": {
+        "type": "http",
+        "scheme": "basic",
+        "description": "Requires ADMIN role"
+      }
+    },
+    "schemas": {
+      "Registration": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "username": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_.-]{3,48}$"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 12,
+            "maxLength": 72,
+            "writeOnly": true
+          },
+          "invite_code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "username",
+          "password",
+          "invite_code"
+        ]
+      },
+      "RunRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "run_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Run Id",
+            "type": "string"
+          },
+          "shop_id": {
+            "title": "Shop Id",
+            "type": "string"
+          },
+          "conversation_id": {
+            "title": "Conversation Id",
+            "type": "string"
+          },
+          "message_id": {
+            "title": "Message Id",
+            "type": "string"
+          },
+          "knowledge_version": {
+            "title": "Knowledge Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "shop_id",
+          "conversation_id",
+          "message_id",
+          "knowledge_version"
+        ],
+        "title": "RunRequest",
+        "type": "object"
+      },
+      "ManualReply": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]{16,100}$"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000
+          },
+          "answered_message_ids": {
+            "type": "array",
+            "maxItems": 200,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "description": "本次人工回复覆盖的本会话待回复消息；仅发送成功后标记已回答，省略表示不清除任何咨询。"
+          }
+        },
+        "required": [
+          "request_id",
+          "revision",
+          "content"
+        ]
+      },
+      "InboundMessage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "shop_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "platform_shop_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "connector_account_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "platform_message_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 200
+          },
+          "buyer_ref": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "direction": {
+            "enum": [
+              "inbound",
+              "outbound",
+              "system"
+            ]
+          },
+          "message_type": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 20000
+          },
+          "occurred_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "received_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "action": {
+            "enum": [
+              "reply",
+              "context_only",
+              "handoff",
+              "ignore",
+              "observe",
+              "unknown"
+            ]
+          },
+          "media": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "enum": [
+                  "image",
+                  "product"
+                ]
+              },
+              "image_url": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 4000
+              },
+              "goods_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 200
+              },
+              "title": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 1000
+              },
+              "related_platform_message_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[0-9]{1,200}$",
+                "description": "已核实 type 41 来源卡 pre_msg_id 指向的咨询编号。"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          }
+        },
+        "required": [
+          "event_id",
+          "shop_id",
+          "platform_shop_id",
+          "connector_account_id",
+          "buyer_ref",
+          "direction",
+          "message_type",
+          "content",
+          "received_at",
+          "action"
+        ]
+      },
+      "Decision": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "enum": [
+              "approve",
+              "reject",
+              "transfer"
+            ]
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "final_content": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 4000
+          },
+          "product_ids": {
+            "type": "array",
+            "maxItems": 3,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "description": "明确勾选的草稿商品卡片 ID；省略或空数组只发送文字。"
+          }
+        },
+        "required": [
+          "decision",
+          "revision"
+        ]
+      },
+      "SendResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "state": {
+            "enum": [
+              "sent",
+              "send_failed",
+              "send_unknown"
+            ]
+          },
+          "error_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "receipt_basis": {
+            "type": "string"
+          },
+          "parts": {
+            "type": "array",
+            "maxItems": 4,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 205
+                },
+                "kind": {
+                  "enum": [
+                    "text",
+                    "product_card"
+                  ]
+                },
+                "goods_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "state": {
+                  "enum": [
+                    "sent",
+                    "send_failed",
+                    "send_unknown"
+                  ]
+                },
+                "error_code": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "receipt_basis": {
+                  "type": "string"
+                },
+                "platform_message_id": {
+                  "type": "string",
+                  "pattern": "^[0-9]{1,200}$"
+                }
+              },
+              "required": [
+                "key",
+                "kind",
+                "state"
+              ]
+            }
+          },
+          "platform_message_id": {
+            "type": "string",
+            "pattern": "^[0-9]{1,200}$",
+            "description": "平台发送成功回执中已核实的消息编号；未返回时不猜测。"
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "Citation": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "knowledge_topics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "source_authority": {
+            "enum": [
+              "shop_published"
+            ]
+          },
+          "source_type": {
+            "enum": [
+              "product",
+              "shop_policy",
+              "platform_product",
+              "platform_order"
+            ]
+          },
+          "source_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "source_version": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "evidence_text": {
+            "type": "string"
+          },
+          "fetched_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "document_name": {
+            "type": "string",
+            "description": "Optional document provenance; plain text only."
+          },
+          "source_location": {
+            "type": "string",
+            "description": "Optional document provenance; plain text only."
+          },
+          "title": {
+            "type": "string",
+            "description": "Optional document provenance; plain text only."
+          },
+          "citation_role": {
+            "type": "string",
+            "enum": [
+              "response_guideline"
+            ],
+            "description": "Response preference reference, not business fact evidence."
+          }
+        },
+        "required": [
+          "source_type",
+          "source_id",
+          "source_version",
+          "evidence_text"
+        ]
+      },
+      "DraftResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "message_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "conversation_revision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "knowledge_version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "outcome": {
+            "enum": [
+              "draft",
+              "needs_human",
+              "insufficient_evidence"
+            ]
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "citations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Citation"
+            }
+          },
+          "risk_codes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "engine": {
+            "enum": [
+              "policy",
+              "extractive",
+              "extractive_fallback",
+              "llm_evidence_selection",
+              "llm_agent"
+            ]
+          },
+          "model": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "model_config_version": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "model_calls": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "history_truncated": {
+            "type": "boolean"
+          },
+          "tool_trace": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "duration_ms": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "retrieval": {
+                  "type": "object",
+                  "properties": {
+                    "mode": {
+                      "enum": [
+                        "hybrid",
+                        "bm25",
+                        "bm25_degraded"
+                      ]
+                    },
+                    "keyword_candidates": {
+                      "type": "integer"
+                    },
+                    "vector_candidates": {
+                      "type": "integer"
+                    },
+                    "reranked": {
+                      "type": "integer"
+                    },
+                    "reason": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "required": [
+                "name",
+                "status",
+                "duration_ms"
+              ]
+            }
+          },
+          "product_cards": {
+            "type": "array",
+            "maxItems": 3,
+            "items": {
+              "$ref": "#/components/schemas/ProductCard"
+            }
+          },
+          "understanding": {
+            "$ref": "#/components/schemas/QuestionUnderstanding"
+          },
+          "order_context": {
+            "$ref": "#/components/schemas/OrderContext"
+          },
+          "answered_message_ids": {
+            "type": "array",
+            "maxItems": 8,
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            },
+            "description": "Verified subset of run coverage; only these IDs bind to the send command. Empty for non-sendable outcomes."
+          },
+          "question_results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "message_id",
+                "outcome"
+              ],
+              "properties": {
+                "message_id": {
+                  "type": "string"
+                },
+                "outcome": {
+                  "enum": [
+                    "draft",
+                    "needs_human",
+                    "insufficient_evidence"
+                  ]
+                },
+                "risk_codes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "verification": {
+                  "$ref": "#/components/schemas/VerificationSummary"
+                },
+                "understanding": {
+                  "$ref": "#/components/schemas/QuestionUnderstanding"
+                }
+              }
+            }
+          },
+          "verification": {
+            "$ref": "#/components/schemas/VerificationSummary"
+          }
+        },
+        "required": [
+          "run_id",
+          "message_id",
+          "conversation_revision",
+          "knowledge_version",
+          "outcome",
+          "content",
+          "citations",
+          "risk_codes",
+          "engine"
+        ]
+      },
+      "ProductCard": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "goods_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "image_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 4000
+          },
+          "price": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 100
+          },
+          "fetched_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "goods_id",
+          "title",
+          "image_url",
+          "price",
+          "fetched_at"
+        ]
+      },
+      "DraftCardReplacement": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "product_ids": {
+            "type": "array",
+            "maxItems": 3,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          "content": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 4000
+          }
+        },
+        "required": [
+          "revision",
+          "product_ids"
+        ]
+      },
+      "ModelConfigurationInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "base_url": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "model": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "api_key": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 4096,
+            "writeOnly": true
+          },
+          "max_rounds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8
+          },
+          "timeout_seconds": {
+            "type": "integer",
+            "minimum": 5,
+            "maximum": 70
+          }
+        },
+        "required": [
+          "revision",
+          "base_url",
+          "model",
+          "max_rounds",
+          "timeout_seconds"
+        ]
+      },
+      "ConfigurationRevision": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "revision"
+        ]
+      },
+      "ModelConfigurationTest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "base_url": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "model": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "api_key": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 4096,
+            "writeOnly": true
+          },
+          "max_rounds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 8
+          },
+          "timeout_seconds": {
+            "type": "integer",
+            "minimum": 5,
+            "maximum": 70
+          }
+        },
+        "required": [
+          "base_url",
+          "model",
+          "api_key",
+          "max_rounds",
+          "timeout_seconds"
+        ]
+      },
+      "ShopName": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "ProductDetailRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "goods_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "goods_id"
+        ]
+      },
+      "ShopProfile": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "platform_shop_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "connector_account_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "avatar_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 4000
+          },
+          "main_category": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "platform_shop_id",
+          "connector_account_id",
+          "name"
+        ]
+      },
+      "ConnectorBinding": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "platform_shop_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "connector_account_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "platform_shop_id",
+          "connector_account_id"
+        ]
+      },
+      "PendingQuestion": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "message_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20000
+          },
+          "message_type": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "created_at": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "message_id",
+          "content",
+          "message_type",
+          "created_at"
+        ]
+      },
+      "QuestionUnderstanding": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "intents": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "inventory",
+                "product",
+                "price",
+                "shipping",
+                "logistics",
+                "after_sales_policy",
+                "after_sales_action",
+                "social",
+                "unknown"
+              ]
+            }
+          },
+          "quantity_meaning": {
+            "enum": [
+              "inventory",
+              "unit_count",
+              "both",
+              "none",
+              "unclear"
+            ]
+          },
+          "requires_order": {
+            "type": "boolean"
+          },
+          "needs_clarification": {
+            "type": "boolean"
+          },
+          "risk_flags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "source": {
+            "enum": [
+              "model",
+              "safety_rules",
+              "platform_metadata",
+              "social_rules"
+            ]
+          },
+          "failed": {
+            "type": "boolean"
+          },
+          "order_verified": {
+            "type": "boolean"
+          },
+          "product_scope": {
+            "enum": [
+              "current",
+              "catalog"
+            ]
+          },
+          "product_ambiguous": {
+            "type": "boolean",
+            "description": "历史推荐多款，尚无买家明确选择。"
+          },
+          "product_keywords": {
+            "type": "array",
+            "maxItems": 6,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 60
+            }
+          }
+        }
+      },
+      "OrderContext": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "已核对当前店铺凭据和会话买家归属的只读订单摘要；缺失字段不得推断。",
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "goods_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "spec": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "purchased_quantity": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "order_status": {
+            "enum": [
+              "unknown",
+              "cancelled",
+              "closed",
+              "unpaid",
+              "paid",
+              "awaiting_group",
+              "awaiting_shipment",
+              "shipped",
+              "signed",
+              "completed"
+            ]
+          },
+          "status_text": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 100
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status_error_code": {
+            "type": "string"
+          },
+          "missing_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "fetched_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "retry_after_seconds": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "DocumentPreviewRequest": {
+        "type": "object",
+        "required": [
+          "filename",
+          "content_base64"
+        ],
+        "properties": {
+          "filename": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "content_base64": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 7000000,
+            "contentEncoding": "base64",
+            "description": "Local file <=5 MiB; txt/md/csv/docx/xlsx/text PDF. Original file is not retained."
+          }
+        }
+      },
+      "DocumentChunk": {
+        "type": "object",
+        "required": [
+          "source_id",
+          "title",
+          "text",
+          "document_name",
+          "document_sha256",
+          "source_location",
+          "chunk_index"
+        ],
+        "properties": {
+          "source_id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 10000
+          },
+          "document_name": {
+            "type": "string"
+          },
+          "document_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "source_location": {
+            "type": "string"
+          },
+          "chunk_index": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "suggested_topic": {
+            "enum": [
+              "",
+              "shipping",
+              "policy",
+              "spec",
+              "recommendation",
+              "response_guidelines",
+              "faq"
+            ]
+          },
+          "classification_method": {
+            "enum": [
+              "rule",
+              "semantic",
+              "unclassified"
+            ]
+          },
+          "classification_note": {
+            "type": "string"
+          },
+          "is_heading": {
+            "type": "boolean",
+            "description": "Keep as context; exclude from publication by default."
+          }
+        }
+      },
+      "DocumentPreview": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string"
+          },
+          "chunks": {
+            "type": "array",
+            "maxItems": 500,
+            "items": {
+              "$ref": "#/components/schemas/DocumentChunk"
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "organization": {
+            "type": "object",
+            "properties": {
+              "mode": {
+                "enum": [
+                  "local_rules",
+                  "local_rules_semantic"
+                ]
+              },
+              "unclassified": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      },
+      "KnowledgeEntry": {
+        "type": "object",
+        "required": [
+          "source_id",
+          "source_type",
+          "topics",
+          "text"
+        ],
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "source_type": {
+            "enum": [
+              "product",
+              "shop_policy"
+            ]
+          },
+          "topics": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "enum": [
+                "shipping",
+                "policy",
+                "spec",
+                "recommendation",
+                "response_guidelines",
+                "faq"
+              ]
+            }
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 10000
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "goods_id": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Required for product sources; must belong to this shop."
+          },
+          "document_name": {
+            "type": "string"
+          },
+          "document_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "source_location": {
+            "type": "string"
+          },
+          "chunk_index": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "classification_method": {
+            "enum": [
+              "rule",
+              "semantic",
+              "manual"
+            ]
+          },
+          "valid_from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "valid_until": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "KnowledgePublish": {
+        "type": "object",
+        "required": [
+          "version",
+          "entries"
+        ],
+        "properties": {
+          "version": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "base_version": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Optimistic lock against active knowledge id; empty string means none. Omit only for legacy clients."
+          },
+          "entries": {
+            "type": "array",
+            "minItems": 0,
+            "maxItems": 500,
+            "items": {
+              "$ref": "#/components/schemas/KnowledgeEntry"
+            },
+            "description": "Full immutable snapshot; an empty list removes all active entries and requires base_version. Historical versions remain retained."
+          }
+        }
+      },
+      "VerificationSummary": {
+        "type": "object",
+        "properties": {
+          "repair_attempted": {
+            "type": "boolean"
+          },
+          "scope": {
+            "enum": [
+              "non_factual",
+              "business_facts"
+            ]
+          },
+          "checks": {
+            "type": "array",
+            "maxItems": 2,
+            "items": {
+              "type": "object",
+              "required": [
+                "supported",
+                "issues"
+              ],
+              "properties": {
+                "supported": {
+                  "type": "boolean"
+                },
+                "question_is_social": {
+                  "type": "boolean"
+                },
+                "contains_business_claims": {
+                  "type": "boolean"
+                },
+                "contains_action_commitment": {
+                  "type": "boolean"
+                },
+                "issues": {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "price_scope",
+                      "price_value",
+                      "stock_value",
+                      "spec_identity",
+                      "minimum_comparison",
+                      "unsupported_promise",
+                      "missing_answer",
+                      "citation_missing",
+                      "other",
+                      "response_guideline",
+                      "reply_verbosity",
+                      "business_claims"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "OrderQuery": {
+        "type": "object",
+        "required": [
+          "order_id",
+          "buyer_ref"
+        ],
+        "properties": {
+          "order_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "buyer_ref": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        }
+      },
+      "OrderQueryResult": {
+        "type": "object",
+        "required": [
+          "shop_id",
+          "order"
+        ],
+        "properties": {
+          "shop_id": {
+            "type": "string"
+          },
+          "order": {
+            "$ref": "#/components/schemas/OrderContext"
+          }
+        }
+      },
+      "KnowledgeReviewDecision": {
+        "type": "object",
+        "required": [
+          "revision",
+          "action",
+          "note"
+        ],
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "submit",
+              "withdraw",
+              "approve",
+              "reject"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "acknowledge_conflicts": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "KnowledgeSearchQuery": {
+        "type": "object",
+        "required": [
+          "query",
+          "mode"
+        ],
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "current",
+              "bm25",
+              "hybrid"
+            ]
+          },
+          "source_type": {
+            "type": "string",
+            "enum": [
+              "product",
+              "shop_policy"
+            ]
+          },
+          "topic": {
+            "type": "string",
+            "enum": [
+              "shipping",
+              "policy",
+              "spec",
+              "recommendation",
+              "faq",
+              "response_guidelines"
+            ]
+          },
+          "goods_id": {
+            "type": "string",
+            "maxLength": 200
+          }
+        }
+      },
+      "WorkspaceMemberStatus": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "revision",
+          "enabled"
+        ],
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "WorkspaceMemberRevision": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "revision"
+        ],
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "KnowledgeProposalUpdate": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "revision",
+          "knowledge"
+        ],
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "knowledge": {
+            "$ref": "#/components/schemas/KnowledgePublish"
+          }
+        }
+      }
+    }
+  }
+}

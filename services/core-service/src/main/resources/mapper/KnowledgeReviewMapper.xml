@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pddcopilot.core.mapper.KnowledgeReviewMapper">
+  <select id="list" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT
+    id,base_version,state,revision,created_by,created_at,reviewed_by,reviewed_at,review_note,published_version
+    FROM knowledge_proposals WHERE shop_id=#{shop} ORDER BY created_at DESC LIMIT 30
+  </select>
+
+  <select id="find" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT * FROM knowledge_proposals WHERE shop_id=#{shop} AND id=#{id}<if test="lock"> FOR UPDATE</if>
+  </select>
+
+  <insert id="insert">
+    INSERT INTO knowledge_proposals(id,shop_id,base_version,snapshot,state,created_by,created_at) VALUES
+    (#{id},#{shop},#{base},#{snapshot},'draft',#{actor},#{at})
+  </insert>
+
+  <update id="transition">
+    UPDATE knowledge_proposals SET
+    state=#{state},revision=revision+1,reviewed_by=#{actor},reviewed_at=#{at},review_note=#{note},published_version=#{version}
+    WHERE shop_id=#{shop} AND id=#{id}
+  </update>
+  <update id="updateDraft">
+    UPDATE knowledge_proposals SET base_version=#{base},snapshot=#{snapshot},state='draft',
+      revision=revision+1,reviewed_by=NULL,reviewed_at=NULL,review_note=NULL,published_version=NULL
+    WHERE shop_id=#{shop} AND id=#{id}
+  </update>
+  <insert id="recordRevision">
+    INSERT INTO knowledge_proposal_revisions
+      (proposal_id,revision,base_version,snapshot,state,actor,created_at,review_note,published_version)
+    SELECT id,revision,base_version,snapshot,state,#{actor},#{at},review_note,published_version
+    FROM knowledge_proposals WHERE shop_id=#{shop} AND id=#{id}
+  </insert>
+  <select id="history" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT h.revision,h.state,h.actor,h.created_at,h.review_note,h.base_version,h.published_version
+    FROM knowledge_proposal_revisions h JOIN knowledge_proposals p ON p.id=h.proposal_id
+    WHERE p.shop_id=#{shop} AND p.id=#{id} ORDER BY h.revision DESC
+  </select>
+  <select id="baseVersion" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT snapshot FROM knowledge_versions WHERE shop_id=#{shop} AND id=#{version}
+  </select>
+</mapper>

@@ -1,0 +1,4 @@
+ALTER TABLE shops ADD COLUMN platform_name VARCHAR(200);
+ALTER TABLE shops ADD COLUMN avatar_url VARCHAR(4000);
+ALTER TABLE shops ADD COLUMN main_category VARCHAR(500);
+ALTER TABLE shops ADD COLUMN profile_updated_at BIGINT NOT NULL DEFAULT 0;

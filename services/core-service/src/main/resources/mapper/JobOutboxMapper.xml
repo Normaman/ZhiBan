@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pddcopilot.core.mapper.JobOutboxMapper">
+  <select id="claimDue" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false" affectData="true" flushCache="true">
+    WITH due AS ( SELECT id FROM job_outbox WHERE (state='pending' AND available_at&lt;=#{now}) OR
+    (state='publishing' AND locked_until&lt;#{now}) ORDER BY available_at LIMIT #{limit} FOR UPDATE SKIP
+    LOCKED ) UPDATE job_outbox o SET state='publishing', attempts=attempts+1, locked_until=#{leaseUntil},
+    claim_id=#{claimId} FROM due WHERE o.id=due.id RETURNING o.id,o.job_id,o.attempts,o.claim_id
+  </select>
+
+  <update id="published">
+    UPDATE job_outbox SET state='published',published_at=#{timestamp},locked_until=0,error_code=NULL WHERE
+    id=#{id} AND state='publishing' AND claim_id=#{claimId}
+  </update>
+
+  <update id="retry">
+    UPDATE job_outbox SET state='pending',available_at=#{availableAt},locked_until=0,error_code=#{errorCode}
+    WHERE id=#{id} AND state='publishing' AND claim_id=#{claimId}
+  </update>
+
+  <select id="countActive" resultType="java.lang.Long" useCache="false">
+    SELECT count(*) FROM job_outbox WHERE state IN ('pending','publishing')
+  </select>
+</mapper>

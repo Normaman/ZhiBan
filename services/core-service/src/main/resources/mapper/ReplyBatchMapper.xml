@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pddcopilot.core.mapper.ReplyBatchMapper">
+  <insert id="track">
+    INSERT INTO reply_questions(message_id,conversation_id) VALUES (#{message},#{conversation})
+  </insert>
+
+  <select id="pending" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT q.message_id,m.content,m.message_type,m.created_at FROM reply_questions q JOIN messages m ON
+    m.id=q.message_id WHERE q.conversation_id=#{conversation} AND q.answered_at IS NULL AND
+    m.message_type&lt;&gt;'order_info' AND NOT
+    <include refid="com.pddcopilot.core.mapper.SqlFragments.linkedProductCard"/> ORDER BY q.sequence
+  </select>
+
+  <select id="coverage" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT q.message_id,m.content,m.message_type,m.created_at FROM reply_run_messages r JOIN reply_questions
+    q ON q.message_id=r.message_id JOIN messages m ON m.id=q.message_id WHERE r.run_id=#{run} AND
+    m.message_type&lt;&gt;'order_info' ORDER BY q.sequence
+  </select>
+
+  <delete id="refreshSnapshotDeleteReplyRunMessages">
+    DELETE FROM reply_run_messages WHERE run_id=#{run}
+  </delete>
+
+  <update id="refreshSnapshotUpdateAgentRuns">
+    UPDATE agent_runs SET context_at=#{now},conversation_revision=(SELECT revision FROM conversations WHERE
+    id=#{conversation}) WHERE id=#{run}
+  </update>
+
+  <select id="snapshotSelectAgentRuns" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT m.created_at,q.sequence,r.message_id,r.single_question FROM agent_runs r JOIN messages m ON
+    m.id=r.message_id JOIN reply_questions q ON q.message_id=m.id WHERE r.id=#{run}
+  </select>
+
+  <insert id="snapshotInsertReplyRunMessages">
+    INSERT INTO reply_run_messages(run_id,message_id) SELECT #{run},message_id FROM reply_questions WHERE
+    message_id=#{messageId} AND answered_at IS NULL
+  </insert>
+
+  <select id="snapshotSelectReplyQuestions" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT q.message_id FROM reply_questions q JOIN messages m ON m.id=q.message_id WHERE
+    q.conversation_id=#{conversation} AND q.answered_at IS NULL AND m.message_type&lt;&gt;'order_info' AND
+    NOT <include refid="com.pddcopilot.core.mapper.SqlFragments.linkedProductCard"/> AND
+    q.sequence&lt;=#{sequence} AND m.created_at&gt;=#{start} AND NOT EXISTS (SELECT 1 FROM messages sent
+    WHERE sent.conversation_id=q.conversation_id AND sent.direction='outbound' AND sent.state='sent' AND
+    sent.created_at&gt;m.created_at AND sent.created_at&lt;=#{createdAt}) ORDER BY q.sequence DESC LIMIT 8
+  </select>
+
+  <insert id="snapshotInsertReplyRunMessages2">
+    INSERT INTO reply_run_messages(run_id,message_id) VALUES (#{run},#{messageId})
+  </insert>
+
+  <update id="single">
+    UPDATE agent_runs SET single_question=TRUE WHERE id=#{run}
+  </update>
+
+  <select id="result" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT result FROM agent_runs WHERE id=#{run}
+  </select>
+
+  <select id="firstQueuedAt" resultType="org.springframework.util.LinkedCaseInsensitiveMap" useCache="false">
+    SELECT min(coalesce(r.batch_started_at,r.created_at)) AS first_at FROM agent_runs r JOIN messages m ON
+    m.id=r.message_id JOIN jobs j ON j.reference_id=r.id AND j.kind='generate' WHERE
+    m.conversation_id=#{conversation} AND r.state='queued' AND j.state='pending' AND j.attempts=0
+  </select>
+
+  <update id="supersedeQueuedUpdateJobs">
+    UPDATE jobs SET state='done' WHERE kind='generate' AND state='pending' AND attempts=0 AND reference_id IN
+    (SELECT r.id FROM agent_runs r JOIN messages m ON m.id=r.message_id WHERE
+    m.conversation_id=#{conversation} AND r.state='queued')
+  </update>
+
+  <update id="supersedeQueuedUpdateAgentRuns">
+    UPDATE agent_runs SET state='superseded' WHERE state='queued' AND id IN (SELECT reference_id FROM jobs
+    WHERE kind='generate' AND state='done') AND message_id IN (SELECT id FROM messages WHERE
+    conversation_id=#{conversation})
+  </update>
+
+  <update id="deferUpdateAgentRuns">
+    UPDATE agent_runs SET batch_started_at=#{first} WHERE id=#{run}
+  </update>
+
+  <update id="deferUpdateJobs">
+    UPDATE jobs SET available_at=#{due} WHERE kind='generate' AND reference_id=#{run}
+  </update>
+
+  <insert id="bindDraft">
+    INSERT INTO reply_command_messages(command_id,message_id) VALUES (#{command},#{messageId})
+  </insert>
+
+  <select id="commandCoverage" resultType="java.lang.String" useCache="false">
+    SELECT message_id FROM reply_command_messages WHERE command_id=#{command}
+  </select>
+
+  <select id="bindManualSelectReplyQuestions" resultType="java.lang.Integer" useCache="false">
+    SELECT count(*) FROM reply_questions WHERE message_id=#{id} AND conversation_id=#{conversation} AND
+    answered_at IS NULL
+  </select>
+
+  <insert id="bindManualInsertReplyCommandMessages">
+    INSERT INTO reply_command_messages(command_id,message_id) VALUES (#{command},#{id})
+  </insert>
+
+  <update id="delivered">
+    UPDATE reply_questions SET answered_by=#{command},answered_at=#{timestamp} WHERE answered_at IS NULL AND
+    message_id IN (SELECT message_id FROM reply_command_messages WHERE command_id=#{command})
+  </update>
+</mapper>

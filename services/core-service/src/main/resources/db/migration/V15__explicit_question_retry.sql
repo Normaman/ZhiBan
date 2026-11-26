@@ -1,0 +1,1 @@
+ALTER TABLE agent_runs ADD COLUMN single_question BOOLEAN NOT NULL DEFAULT FALSE;

@@ -1,0 +1,99 @@
+server:
+  port: ${PORT:8080}
+  servlet:
+    session:
+      timeout: 30m
+      cookie:
+        name: PDD_SESSION
+        path: /
+        http-only: true
+        same-site: lax
+        secure: ${SESSION_COOKIE_SECURE:false}
+  error:
+    include-message: never
+spring:
+  task:
+    scheduling:
+      pool:
+        size: 4
+      thread-name-prefix: core-scheduler-
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      connect-timeout: 1s
+      timeout: 1s
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/copilot}
+    username: ${DATABASE_USER:copilot}
+    password: ${DATABASE_PASSWORD}
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    deserialization:
+      fail-on-unknown-properties: true
+  flyway:
+    enabled: true
+management:
+  health:
+    redis:
+      enabled: ${REDIS_ENABLED:false}
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      show-details: never
+logging:
+  level:
+    web: WARN
+    org.springframework.web: WARN
+    org.springframework.security: WARN
+    org.springframework.jdbc: WARN
+    org.springframework.jdbc.core: WARN
+copilot:
+  pdd-order:
+    enable-camoufox-fallback: ${PDD_ENABLE_CAMOUFOX_FALLBACK:false}
+    camoufox-gateway-url: ${CAMOUFOX_GATEWAY_URL:}
+    camoufox-proxy: ${CAMOUFOX_PROXY:}
+    camoufox-gateway-token: ${CAMOUFOX_GATEWAY_TOKEN:}
+  reply-debounce-ms: ${REPLY_DEBOUNCE_MS:2000}
+  live-send-enabled: ${LIVE_SEND_ENABLED:false}
+  live-send-shop: ${LIVE_SEND_SHOP_ID:}
+  live-send-conversation: ${LIVE_SEND_CONVERSATION_ID:}
+  live-send-expires-at: ${LIVE_SEND_EXPIRES_AT:0}
+  model-encryption-key: ${MODEL_ENCRYPTION_KEY:}
+  allow-local-model-endpoints: ${ALLOW_LOCAL_MODEL_ENDPOINTS:false}
+  model-allowed-hosts: ${MODEL_ALLOWED_HOSTS:api.deepseek.com,api.openai.com}
+  redis-enabled: ${REDIS_ENABLED:false}
+  session-store: ${AUTH_SESSION_STORE:redis}
+  auth-trusted-proxy-cidrs: ${AUTH_TRUSTED_PROXY_CIDRS:}
+  registration-invite: ${REGISTRATION_INVITE:}
+  worker-concurrency: ${WORKER_CONCURRENCY:4}
+  shop-id: ${SHOP_ID:initial-shop}
+  reviewer: ${REVIEWER_USER:reviewer}
+  reviewer-password: ${REVIEWER_PASSWORD}
+  internal-token: ${INTERNAL_TOKEN}
+  agent-url: ${AGENT_URL:http://localhost:8001}
+  worker-enabled: ${WORKER_ENABLED:true}
+  pdd-reconcile-ms: ${PDD_RECONCILE_MS:5000}
+  pdd-spool-poll-ms: ${PDD_SPOOL_POLL_MS:500}
+  job-stream-key: ${JOB_STREAM_KEY:copilot:jobs}
+  job-consumer-group: ${JOB_CONSUMER_GROUP:copilot-workers}
+  job-outbox-poll-ms: ${JOB_OUTBOX_POLL_MS:250}
+  job-reconcile-ms: ${JOB_RECONCILE_MS:30000}
+  product-catalog-poll-initial-delay-ms: ${PRODUCT_CATALOG_POLL_INITIAL_DELAY_MS:60000}
+  product-catalog-poll-interval-ms: ${PRODUCT_CATALOG_POLL_INTERVAL_MS:300000}
+
+mybatis:
+  mapper-locations: classpath*:mapper/*.xml
+  configuration:
+    # Existing API result maps use SQL column names and include NULL values.
+    map-underscore-to-camel-case: false
+    call-setters-on-nulls: true
+    return-instance-for-empty-row: true
+    jdbc-type-for-null: 'NULL'
+    # Locking queries must reach PostgreSQL on every call, including within one transaction.
+    local-cache-scope: STATEMENT
+    cache-enabled: false

@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "知伴订单请求检查",
+  "version": "0.1.0",
+  "description": "仅检查当前 Edge 拼多多订单页已经发出的订单列表请求。",
+  "permissions": ["storage"],
+  "host_permissions": ["https://mms.pinduoduo.com/*"],
+  "background": { "service_worker": "worker.js" },
+  "action": {
+    "default_title": "查看最近一次订单请求",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://mms.pinduoduo.com/orders/list*"],
+      "js": ["page-hook.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://mms.pinduoduo.com/orders/list*"],
+      "js": ["bridge.js"],
+      "run_at": "document_start"
+    }
+  ]
+}
