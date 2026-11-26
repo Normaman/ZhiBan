@@ -1,4 +1,22 @@
-# 拼多多客服副驾驶
+<div align="center">
+  <img src="./docs/images/banner.webp" alt="知伴 - AI 客服工作台" width="100%" />
+  <h1>知伴 · ZhiBan</h1>
+  <h3>面向电商商家的 AI 客服副驾驶</h3>
+  <p><em>让每一次回复，都有依据。</em></p>
+  <p>
+    <img src="https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB" alt="React" />
+    <img src="https://img.shields.io/badge/Spring_Boot-6DB33F?style=flat-square&logo=springboot&logoColor=white" alt="Spring Boot" />
+    <img src="https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white" alt="FastAPI" />
+    <img src="https://img.shields.io/badge/LangGraph-1C3C3C?style=flat-square&logo=langchain&logoColor=white" alt="LangGraph" />
+    <img src="https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white" alt="PostgreSQL" />
+    <img src="https://img.shields.io/badge/Redis-DC382D?style=flat-square&logo=redis&logoColor=white" alt="Redis" />
+    <img src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker" />
+  </p>
+</div>
+
+---
+
+## 项目介绍
 
 为拼多多商家打造的 AI 客服工作台。集中处理买家咨询，结合商品资料、订单信息与店铺知识生成回复草稿，由客服审核后发送。
 
@@ -12,6 +30,27 @@
 - **人工审批**：查看引用、编辑草稿再发送；记录发送结果，结果不确定时保留待核实状态。
 - **多店铺管理**：按工作空间隔离店铺数据，支持店铺切换、成员权限和邀请码注册。
 - **运行追踪与评测**：查看模型及工具执行记录，使用评测集和人工复核改进回复质量。
+
+## 技术架构
+
+| 组件 | 职责 |
+| --- | --- |
+| React | 会话、知识库、审批与店铺管理工作台 |
+| Spring Boot / MyBatis | 拼多多连接、商品与订单查询、权限、审批、消息发送与业务持久化 |
+| FastAPI + LangGraph | Agent 编排、工具调用、RAG 与草稿生成 |
+| PostgreSQL | 业务数据、知识版本、任务状态与审计记录 |
+| Redis Streams | 后台任务分发与消费者组协作 |
+
+## 核心技术亮点
+
+| 技术能力 | 项目中的应用 |
+| --- | --- |
+| Agent 编排与工具调用 | 基于 FastAPI 和 LangGraph 组织多轮上下文、工具查询与回复草稿生成。 |
+| Hybrid RAG | 结合商品知识、店铺政策、常见问答及客服规范进行混合检索，为回复提供依据。 |
+| Human-in-the-Loop | 客服核对引用、编辑并审批草稿；支持人工接管和恢复 Agent。 |
+| 异步任务与状态管理 | 使用 Redis Streams 分发后台任务，结合 PostgreSQL 保存任务状态和审计记录。 |
+| 多店铺隔离与权限 | 通过工作空间隔离店铺数据，管理店铺切换、成员权限和注册邀请。 |
+| 可观测性与评测 | 记录模型及工具执行过程，结合评测集与人工复核改进回复质量。 |
 
 ## 开始使用
 
@@ -42,25 +81,20 @@ docker compose --env-file infra/.env -f infra/compose.yml up --build -d
 
 真实发送默认关闭，启用方式及完整部署步骤见 [部署与维护](docs/deployment.md)。首次构建需要网络访问镜像与依赖仓库。
 
-## 技术架构
+## 项目文档
 
-| 组件 | 职责 |
-| --- | --- |
-| React | 会话、知识库、审批与店铺管理工作台 |
-| Spring Boot / MyBatis | 拼多多连接、商品与订单查询、权限、审批、消息发送与业务持久化 |
-| FastAPI + LangGraph | Agent 编排、工具调用、RAG 与草稿生成 |
-| PostgreSQL | 业务数据、知识版本、任务状态与审计记录 |
-| Redis Streams | 后台任务分发与消费者组协作 |
-
-## 文档
-
-- [部署与维护](docs/deployment.md)
-- [Agent 编排与模型配置](docs/agent.md)
-- [知识库资料管理](docs/knowledge-import.md) · [混合检索与 RAG](docs/hybrid-rag.md)
-- [多店铺与成员权限](docs/multishop.md) · [账号安全](docs/account-security.md)
-- [任务队列与恢复机制](docs/job-queue.md)
-- [评测与人工复核](docs/agent-evaluation.md)
-- [代码导览](docs/code-guide.md) · [开发运行手册](docs/copilot-runbook.md)
+| 分类 | 文档 | 说明 |
+| --- | --- | --- |
+| 快速部署 | [部署与维护](docs/deployment.md) | 环境配置、Docker 部署与系统维护 |
+| Agent | [Agent 编排与模型配置](docs/agent.md) | 智能体编排与模型服务配置 |
+| 知识库 | [知识库资料管理](docs/knowledge-import.md) | 知识导入与店铺知识维护 |
+| RAG | [混合检索与 RAG](docs/hybrid-rag.md) | 混合检索与知识增强生成 |
+| 店铺管理 | [多店铺与成员权限](docs/multishop.md) | 工作空间、数据隔离与成员权限 |
+| 安全 | [账号安全](docs/account-security.md) | 账号安全机制 |
+| 任务调度 | [任务队列与恢复机制](docs/job-queue.md) | 后台任务分发与恢复 |
+| 质量评测 | [评测与人工复核](docs/agent-evaluation.md) | 回复质量评测与人工复核 |
+| 开发指南 | [代码导览](docs/code-guide.md) | 项目代码结构与模块划分 |
+| 运行维护 | [开发运行手册](docs/copilot-runbook.md) | 开发与运行操作指南 |
 
 ## 接入与许可说明
 
